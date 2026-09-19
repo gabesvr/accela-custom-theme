@@ -171,8 +171,8 @@ class MainWindow(QMainWindow):
     def _setup_window_properties(self) -> None:
         """Configure basic window properties."""
         self.setWindowTitle("ACCELA")
-        self.setWindowFlags(Qt.WindowType.FramelessWindowHint)
-        self.setGeometry(100, 100, 800, 600)
+        self.setWindowFlags(Qt.WindowType.Dialog | Qt.WindowType.FramelessWindowHint)
+        self.setGeometry(100, 100, 820, 540)
 
         icon_path = Paths.resource("logo/icon.ico")
         if icon_path.exists():

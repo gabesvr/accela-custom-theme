@@ -46,7 +46,7 @@ EOF
 echo -e "${NC}"
 echo -e "${CYAN}================================================================${NC}"
 echo -e "${BOLD}CRÉDITOS ESPECIAIS AO CISKÃO (ciscosweater):${NC}"
-echo -e "Executando instalador base e correções do Enter The Wired:"
+echo -e "Executando instaladores base do projeto Enter The Wired..."
 echo -e "Repositório original: https://github.com/ciscosweater/enter-the-wired"
 echo -e "${CYAN}================================================================${NC}"
 echo ""
@@ -54,18 +54,18 @@ echo ""
 # ------------------------------------------------------------------------------
 # 1. Executar os Scripts Originais do Ciskão (Enter The Wired)
 # ------------------------------------------------------------------------------
-echo -e "${GREEN}[1/4] Executando dependências do sistema (fix-deps do Ciskão)...${NC}"
+echo -e "${GREEN}[1/5] Executando dependências do sistema (fix-deps do Ciskão)...${NC}"
 curl -fsSL https://raw.githubusercontent.com/ciscosweater/enter-the-wired/main/fix-deps | bash || true
 
 echo ""
-echo -e "${GREEN}[2/4] Instalando base do ACCELA (accela do Ciskão)...${NC}"
+echo -e "${GREEN}[2/5] Instalando base oficial do ACCELA (accela do Ciskão)...${NC}"
 curl -fsSL https://raw.githubusercontent.com/ciscosweater/enter-the-wired/main/accela | bash
 
 # ------------------------------------------------------------------------------
 # 2. Obter Arquivos do Tema Customizado
 # ------------------------------------------------------------------------------
 echo ""
-echo -e "${GREEN}[3/4] Baixando e aplicando Tema Customizado & Music Player...${NC}"
+echo -e "${GREEN}[3/5] Baixando e aplicando Tema Customizado & Music Player...${NC}"
 
 SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
 THEME_DIR="$SCRIPT_DIR/theme"
@@ -78,7 +78,7 @@ if [ ! -d "$THEME_DIR" ]; then
     THEME_DIR="$TMP_CLONE/theme"
 fi
 
-# Se não estiver descompactado no squashfs-root, descompactar o AppImage para aplicar o tema
+# Se não estiver descompactado no squashfs-root, descompactar o AppImage
 if [ ! -d "$INSTALL_DIR/squashfs-root" ]; then
     echo "Extraindo AppImage para integração do tema e player..."
     if [ -f "$INSTALL_DIR/ACCELA.AppImage" ]; then
@@ -132,7 +132,7 @@ fi
 # ------------------------------------------------------------------------------
 # 3. Gravar Configuração do Tema (Pastel Macintosh & Silenciar Sons Nativos)
 # ------------------------------------------------------------------------------
-echo "Aplicando configuração de cores e silenciando zumbido de fundo..."
+echo "Aplicando paleta Pastel Macintosh (#F5F2EB / #8E3B56) e silenciando ruídos..."
 CONF_DIR="$HOME/.config/Tachibana Labs"
 mkdir -p "$CONF_DIR"
 
@@ -156,10 +156,53 @@ use_steamless=true
 EOF
 
 # ------------------------------------------------------------------------------
-# 4. Configurar Lançador e Atalhos
+# 4. Configurar Janela Flutuante (Window Rules para Hyprland)
 # ------------------------------------------------------------------------------
-echo ""
-echo -e "${GREEN}[4/4] Configurando lançador e atalhos do sistema...${NC}"
+echo -e "${GREEN}[4/5] Configurando regras de janela flutuante (Float)...${NC}"
+
+# Hyprland Lua
+if [ -f "$HOME/.config/hypr/hyprland.lua" ]; then
+    if ! grep -q "accela-float" "$HOME/.config/hypr/hyprland.lua"; then
+        echo "Adicionando regra flutuante no ~/.config/hypr/hyprland.lua..."
+        cat >> "$HOME/.config/hypr/hyprland.lua" << 'EOF'
+
+-- ACCELA: sempre flutuante e centralizado (Custom Theme by gabesvr)
+hl.window_rule({
+    name   = "accela-float",
+    match  = { class = "^([aA][cC][cC][eE][lL][aA]|god\\.is\\.in\\.the\\.wired\\.accela)$" },
+    float  = true,
+    center = true,
+    size   = "820 540",
+})
+hl.window_rule({
+    name   = "accela-float-title",
+    match  = { title = "^(ACCELA)$" },
+    float  = true,
+    center = true,
+    size   = "820 540",
+})
+EOF
+    fi
+# Hyprland Conf
+elif [ -f "$HOME/.config/hypr/hyprland.conf" ]; then
+    if ! grep -q "class:^(ACCELA" "$HOME/.config/hypr/hyprland.conf"; then
+        echo "Adicionando regra flutuante no ~/.config/hypr/hyprland.conf..."
+        cat >> "$HOME/.config/hypr/hyprland.conf" << 'EOF'
+
+# ACCELA: sempre flutuante e centralizado (Custom Theme by gabesvr)
+windowrulev2 = float, class:^(ACCELA|accela|god\.is\.in\.the\.wired\.accela)$
+windowrulev2 = center, class:^(ACCELA|accela|god\.is\.in\.the\.wired\.accela)$
+windowrulev2 = size 820 540, class:^(ACCELA|accela|god\.is\.in\.the\.wired\.accela)$
+windowrulev2 = float, title:^(ACCELA)$
+windowrulev2 = center, title:^(ACCELA)$
+EOF
+    fi
+fi
+
+# ------------------------------------------------------------------------------
+# 5. Configurar Lançador e Atalhos
+# ------------------------------------------------------------------------------
+echo -e "${GREEN}[5/5] Configurando lançador e atalhos do sistema...${NC}"
 
 # Script executável portátil
 cat > "$INSTALL_DIR/ACCELA.AppImage" << 'EOF'
@@ -209,7 +252,8 @@ echo -e "  • Menu de aplicativos: ${BOLD}ACCELA${NC}"
 echo -e "  • Pelo terminal: ${BOLD}accela${NC}"
 echo ""
 echo -e "🎵 ${BOLD}Recursos do Tema Customizado:${NC}"
-echo -e "  • Fundo pastel Macintosh (#F5F2EB) com destaque (#8E3B56)"
+echo -e "  • 100% Flutuante e centralizado por padrão"
+echo -e "  • Visual Pastel Macintosh (#F5F2EB) com destaque (#8E3B56)"
 echo -e "  • Zumbidos elétricos e ruídos de fundo desativados"
 echo -e "  • Music player integrado no rodapé com mascote Yume Nikki"
 echo -e "  • Visualizador CAVA em tempo real"

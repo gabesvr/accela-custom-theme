@@ -55,6 +55,8 @@ def main():
     # People only have substance within the memories of other people.
 
     app = QApplication(sys.argv)
+    app.setApplicationName("ACCELA")
+    app.setDesktopFileName("ACCELA")
 
     # -------------------------------------------------------------------------
     # Argument Parsing

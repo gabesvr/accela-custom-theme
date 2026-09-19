@@ -85,6 +85,44 @@ max_downloads=16
 use_steamless=true
 EOF
 
+# Configurar janela flutuante no Hyprland
+if [ -f "$HOME/.config/hypr/hyprland.lua" ]; then
+    if ! grep -q "accela-float" "$HOME/.config/hypr/hyprland.lua"; then
+        echo "Adicionando regra flutuante no hyprland.lua..."
+        cat >> "$HOME/.config/hypr/hyprland.lua" << 'EOF'
+
+-- ACCELA: sempre flutuante e centralizado (Custom Theme by gabesvr)
+hl.window_rule({
+    name   = "accela-float",
+    match  = { class = "^([aA][cC][cC][eE][lL][aA]|god\\.is\\.in\\.the\\.wired\\.accela)$" },
+    float  = true,
+    center = true,
+    size   = "820 540",
+})
+hl.window_rule({
+    name   = "accela-float-title",
+    match  = { title = "^(ACCELA)$" },
+    float  = true,
+    center = true,
+    size   = "820 540",
+})
+EOF
+    fi
+elif [ -f "$HOME/.config/hypr/hyprland.conf" ]; then
+    if ! grep -q "class:^(ACCELA" "$HOME/.config/hypr/hyprland.conf"; then
+        echo "Adicionando regra flutuante no hyprland.conf..."
+        cat >> "$HOME/.config/hypr/hyprland.conf" << 'EOF'
+
+# ACCELA: sempre flutuante e centralizado (Custom Theme by gabesvr)
+windowrulev2 = float, class:^(ACCELA|accela|god\.is\.in\.the\.wired\.accela)$
+windowrulev2 = center, class:^(ACCELA|accela|god\.is\.in\.the\.wired\.accela)$
+windowrulev2 = size 820 540, class:^(ACCELA|accela|god\.is\.in\.the\.wired\.accela)$
+windowrulev2 = float, title:^(ACCELA)$
+windowrulev2 = center, title:^(ACCELA)$
+EOF
+    fi
+fi
+
 # Garantir executável
 cat > "$INSTALL_DIR/ACCELA.AppImage" << 'EOF'
 #!/usr/bin/env bash
