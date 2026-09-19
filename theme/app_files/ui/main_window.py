@@ -245,8 +245,8 @@ class MainWindow(QMainWindow):
         """Initialize all manager classes."""
         self.settings = get_settings()
 
-        self.accent_color = self.settings.value("accent_color", "#C06C84")
-        self.background_color = self.settings.value("background_color", "#000000")
+        self.accent_color = self.settings.value("accent_color", "#8E3B56")
+        self.background_color = self.settings.value("background_color", "#F5F2EB")
 
         self.task_manager = TaskManager(self)
         self.gif_manager = GIFManager(self)

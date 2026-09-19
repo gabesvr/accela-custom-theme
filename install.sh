@@ -33,7 +33,6 @@ fi
 
 INSTALL_DIR="$HOME/.local/share/ACCELA"
 REPO_URL="https://github.com/gabesvr/accela-custom-theme"
-OFFICIAL_DEPS_URL="https://github.com/ciscosweater/enter-the-wired/releases/download/latest/deps.tar.gz"
 
 echo -e "${MAGENTA}${BOLD}"
 cat << 'EOF'
@@ -47,226 +46,131 @@ EOF
 echo -e "${NC}"
 echo -e "${CYAN}================================================================${NC}"
 echo -e "${BOLD}CRÉDITOS ESPECIAIS AO CISKÃO (ciscosweater):${NC}"
-echo -e "Baseado no instalador e utilitários do projeto Enter The Wired"
+echo -e "Executando instalador base e correções do Enter The Wired:"
 echo -e "Repositório original: https://github.com/ciscosweater/enter-the-wired"
 echo -e "${CYAN}================================================================${NC}"
 echo ""
 
 # ------------------------------------------------------------------------------
-# 1. Detecção da Distribuição Linux
+# 1. Executar os Scripts Originais do Ciskão (Enter The Wired)
 # ------------------------------------------------------------------------------
-detect_distro_family() {
-    if [ -f /etc/os-release ]; then
-        source /etc/os-release
-    fi
+echo -e "${GREEN}[1/4] Executando dependências do sistema (fix-deps do Ciskão)...${NC}"
+curl -fsSL https://raw.githubusercontent.com/ciscosweater/enter-the-wired/main/fix-deps | bash || true
 
-    local ID_VAL="${ID:-}"
-    local ID_LIKE_VAL="${ID_LIKE:-}"
-
-    if [[ "$ID_VAL" == "arch" || "$ID_VAL" == "cachyos" || "$ID_VAL" == "endeavouros" || "$ID_VAL" == "manjaro" || "$ID_LIKE_VAL" =~ "arch" ]] || [ -f "/etc/arch-release" ]; then
-        echo "arch"
-        return 0
-    fi
-
-    if [[ "$ID_VAL" == "fedora" || "$ID_VAL" == "bazzite" || "$ID_VAL" == "rhel" || "$ID_VAL" == "centos" || "$ID_LIKE_VAL" =~ "fedora" ]]; then
-        echo "fedora"
-        return 0
-    fi
-
-    if [[ "$ID_VAL" == "debian" || "$ID_VAL" == "ubuntu" || "$ID_VAL" == "linuxmint" || "$ID_VAL" == "pop" || "$ID_LIKE_VAL" =~ "debian" || "$ID_LIKE_VAL" =~ "ubuntu" ]]; then
-        echo "debian"
-        return 0
-    fi
-
-    if [[ "$ID_VAL" =~ opensuse || "$ID_LIKE_VAL" =~ opensuse ]]; then
-        echo "opensuse"
-        return 0
-    fi
-
-    if [[ "$ID_VAL" == "void" ]]; then
-        echo "void"
-        return 0
-    fi
-
-    echo "unknown"
-}
+echo ""
+echo -e "${GREEN}[2/4] Instalando base do ACCELA (accela do Ciskão)...${NC}"
+curl -fsSL https://raw.githubusercontent.com/ciscosweater/enter-the-wired/main/accela | bash
 
 # ------------------------------------------------------------------------------
-# 2. Instalação de Dependências
+# 2. Obter Arquivos do Tema Customizado
 # ------------------------------------------------------------------------------
-install_system_deps() {
-    local FAMILY
-    FAMILY=$(detect_distro_family)
-    echo -e "${GREEN}[1/4] Verificando dependências do sistema (${FAMILY})...${NC}"
+echo ""
+echo -e "${GREEN}[3/4] Baixando e aplicando Tema Customizado & Music Player...${NC}"
 
-    case "$FAMILY" in
-        arch)
-            local PKGS=("python" "xcb-util-cursor" "libnotify" "git" "tar" "curl")
-            local MISSING=()
-            for p in "${PKGS[@]}"; do
-                if ! pacman -Q "$p" &>/dev/null; then
-                    MISSING+=("$p")
-                fi
-            done
+SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
+THEME_DIR="$SCRIPT_DIR/theme"
 
-            # Verificar 7zip ou p7zip
-            if ! pacman -Q 7zip &>/dev/null && ! pacman -Q p7zip &>/dev/null; then
-                MISSING+=("7zip")
-            fi
+if [ ! -d "$THEME_DIR" ]; then
+    echo "Clonando arquivos do tema do repositório GitHub..."
+    TMP_CLONE=$(mktemp -d)
+    trap 'rm -rf "$TMP_CLONE"' EXIT
+    git clone --depth 1 "$REPO_URL.git" "$TMP_CLONE"
+    THEME_DIR="$TMP_CLONE/theme"
+fi
 
-            if [ ${#MISSING[@]} -gt 0 ]; then
-                echo -e "${YELLOW}Instalando pacotes necessários: ${MISSING[*]}${NC}"
-                sudo pacman -S --noconfirm "${MISSING[@]}" || true
-            else
-                echo -e "${GREEN}✓ Todas as dependências do sistema já estão instaladas.${NC}"
-            fi
-            ;;
-        debian)
-            sudo apt update -y 2>/dev/null || true
-            sudo apt-get install -y python3 python3-venv libxcb-cursor0 libnotify-bin git p7zip-full curl tar || true
-            ;;
-        fedora)
-            sudo dnf install -y --setopt=install_weak_deps=False python3 libxcb-cursor libnotify git p7zip p7zip-plugins curl tar || true
-            ;;
-        opensuse)
-            sudo zypper install -y python3 libxcb-cursor0 libnotify-tools git p7zip-full curl tar || true
-            ;;
-        void)
-            sudo xbps-install -y python3 xcb-util-cursor libnotify git 7zip curl tar || true
-            ;;
-        *)
-            echo -e "${YELLOW}[AVISO] Distribuição não identificada diretamente. Verifique se possui python3, git, curl e xcb-util instalados.${NC}"
-            ;;
-    esac
-}
-
-# ------------------------------------------------------------------------------
-# 3. Preparação do ACCELA e Extração
-# ------------------------------------------------------------------------------
-setup_accela_base() {
-    echo -e "${GREEN}[2/4] Preparando base do ACCELA...${NC}"
-
-    local LOCAL_ARCHIVE=""
-    # Procura arquivo local meutemaACCELA se existir
-    if [ -f "$HOME/Downloads/meutemaACCELA.tar.gz" ]; then
-        LOCAL_ARCHIVE="$HOME/Downloads/meutemaACCELA.tar.gz"
+# Se não estiver descompactado no squashfs-root, descompactar o AppImage para aplicar o tema
+if [ ! -d "$INSTALL_DIR/squashfs-root" ]; then
+    echo "Extraindo AppImage para integração do tema e player..."
+    if [ -f "$INSTALL_DIR/ACCELA.AppImage" ]; then
+        cp -f "$INSTALL_DIR/ACCELA.AppImage" "$INSTALL_DIR/ACCELA.AppImage.orig"
+        chmod +x "$INSTALL_DIR/ACCELA.AppImage.orig"
+        (cd "$INSTALL_DIR" && "$INSTALL_DIR/ACCELA.AppImage.orig" --appimage-extract)
     fi
+fi
 
-    if [ -n "$LOCAL_ARCHIVE" ]; then
-        echo -e "${CYAN}Arquivo completo encontrado em: $LOCAL_ARCHIVE${NC}"
-        echo "Extraindo ACCELA e componentes..."
-        mkdir -p "$HOME/.local/share"
-        tar -xzf "$LOCAL_ARCHIVE" -C "$HOME/.local/share/"
-        echo -e "${GREEN}✓ ACCELA extraído com sucesso!${NC}"
-    else
-        # Se não tiver o tarball gigante local, baixa a base oficial do ciskao
-        if [ ! -d "$INSTALL_DIR/squashfs-root" ]; then
-            echo -e "${YELLOW}Instalação local não encontrada. Baixando base oficial do ACCELA...${NC}"
-            local TMP_DIR
-            TMP_DIR=$(mktemp -d)
-            trap 'rm -rf "$TMP_DIR"' EXIT
+if [ ! -d "$INSTALL_DIR/squashfs-root" ]; then
+    echo -e "${RED}[ERRO] Não foi possível extrair o squashfs-root do ACCELA.${NC}"
+    exit 1
+fi
 
-            curl -fsSL --retry 3 --retry-delay 2 -o "$TMP_DIR/deps.tar.gz" "$OFFICIAL_DEPS_URL"
-            mkdir -p "$TMP_DIR/extracted"
-            tar -xzf "$TMP_DIR/deps.tar.gz" -C "$TMP_DIR/extracted"
+# Copiar arquivos do tema
+echo "Copiando componentes da interface e músicas..."
+mkdir -p "$INSTALL_DIR/music"
+mkdir -p "$INSTALL_DIR/gifs"
+mkdir -p "$INSTALL_DIR/squashfs-root/bin/src/ui"
+mkdir -p "$INSTALL_DIR/squashfs-root/bin/src/managers"
+mkdir -p "$INSTALL_DIR/squashfs-root/bin/src/res/sonic"
+mkdir -p "$INSTALL_DIR/squashfs-root/bin/src/res/logo"
 
-            if [ -f "$TMP_DIR/extracted/ACCELAINSTALL" ]; then
-                chmod +x "$TMP_DIR/extracted/ACCELAINSTALL"
-                (cd "$TMP_DIR/extracted" && ./ACCELAINSTALL)
-            fi
+# Copiar código modificado
+if [ -d "$THEME_DIR/app_files" ]; then
+    [ -f "$THEME_DIR/app_files/main.py" ] && cp -f "$THEME_DIR/app_files/main.py" "$INSTALL_DIR/squashfs-root/bin/src/main.py"
+    [ -d "$THEME_DIR/app_files/ui" ] && cp -rf "$THEME_DIR/app_files/ui/"* "$INSTALL_DIR/squashfs-root/bin/src/ui/"
+    [ -d "$THEME_DIR/app_files/managers" ] && cp -rf "$THEME_DIR/app_files/managers/"* "$INSTALL_DIR/squashfs-root/bin/src/managers/"
+    [ -d "$THEME_DIR/app_files/res/sonic" ] && cp -rf "$THEME_DIR/app_files/res/sonic/"* "$INSTALL_DIR/squashfs-root/bin/src/res/sonic/"
+    [ -d "$THEME_DIR/app_files/res/logo" ] && cp -rf "$THEME_DIR/app_files/res/logo/"* "$INSTALL_DIR/squashfs-root/bin/src/res/logo/"
+fi
 
-            # Extrair AppImage se ainda não tiver o squashfs-root
-            if [ -f "$INSTALL_DIR/ACCELA.AppImage" ] && [ ! -d "$INSTALL_DIR/squashfs-root" ]; then
-                echo "Extraindo AppImage para customização..."
-                mv "$INSTALL_DIR/ACCELA.AppImage" "$INSTALL_DIR/ACCELA.AppImage.orig"
-                (cd "$INSTALL_DIR" && "$INSTALL_DIR/ACCELA.AppImage.orig" --appimage-extract)
-            fi
-        fi
+# Copiar músicas e GIFs
+if [ -d "$THEME_DIR/music" ]; then
+    cp -rf "$THEME_DIR/music/"* "$INSTALL_DIR/music/"
+fi
+if [ -d "$THEME_DIR/gifs" ]; then
+    cp -rf "$THEME_DIR/gifs/"* "$INSTALL_DIR/gifs/"
+fi
+
+# Instalar dependência de áudio just_playback no venv interno
+VENV_PYTHON="$INSTALL_DIR/squashfs-root/bin/.venv/bin/python3"
+VENV_PIP="$INSTALL_DIR/squashfs-root/bin/.venv/bin/pip"
+if [ -f "$VENV_PYTHON" ]; then
+    if ! "$VENV_PYTHON" -c "import just_playback" &>/dev/null; then
+        echo "Instalando dependência de áudio 'just_playback' no venv interno..."
+        "$VENV_PIP" install just_playback || true
     fi
-}
+fi
 
 # ------------------------------------------------------------------------------
-# 4. Aplicação do Tema Personalizado & Músicas
+# 3. Gravar Configuração do Tema (Pastel Macintosh & Silenciar Sons Nativos)
 # ------------------------------------------------------------------------------
-apply_theme_files() {
-    echo -e "${GREEN}[3/4] Aplicando tema customizado, player de música e recursos...${NC}"
+echo "Aplicando configuração de cores e silenciando zumbido de fundo..."
+CONF_DIR="$HOME/.config/Tachibana Labs"
+mkdir -p "$CONF_DIR"
 
-    local SCRIPT_DIR
-    SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
-    local THEME_DIR="$SCRIPT_DIR/theme"
-
-    # Se estiver rodando via curl | bash sem repositório local clonado
-    if [ ! -d "$THEME_DIR" ]; then
-        echo "Baixando arquivos do tema do GitHub..."
-        local TMP_CLONE
-        TMP_CLONE=$(mktemp -d)
-        git clone --depth 1 "$REPO_URL.git" "$TMP_CLONE"
-        THEME_DIR="$TMP_CLONE/theme"
-    fi
-
-    if [ ! -d "$THEME_DIR" ]; then
-        echo -e "${RED}[ERRO] Pasta de temas não encontrada.${NC}"
-        return 1
-    fi
-
-    # Criar pastas de destino
-    mkdir -p "$INSTALL_DIR/music"
-    mkdir -p "$INSTALL_DIR/gifs"
-    mkdir -p "$INSTALL_DIR/squashfs-root/bin/src/ui"
-    mkdir -p "$INSTALL_DIR/squashfs-root/bin/src/res/sonic"
-    mkdir -p "$INSTALL_DIR/squashfs-root/bin/src/res/logo"
-
-    # 1. Copiar UI e código customizado
-    if [ -d "$THEME_DIR/app_files/ui" ]; then
-        cp -rf "$THEME_DIR/app_files/ui/"* "$INSTALL_DIR/squashfs-root/bin/src/ui/"
-    fi
-
-    # 2. Copiar recursos Sonic e Logos
-    if [ -d "$THEME_DIR/app_files/res/sonic" ]; then
-        cp -rf "$THEME_DIR/app_files/res/sonic/"* "$INSTALL_DIR/squashfs-root/bin/src/res/sonic/"
-    fi
-    if [ -d "$THEME_DIR/app_files/res/logo" ]; then
-        cp -rf "$THEME_DIR/app_files/res/logo/"* "$INSTALL_DIR/squashfs-root/bin/src/res/logo/"
-    fi
-
-    # 3. Copiar músicas e gifs
-    if [ -d "$THEME_DIR/music" ]; then
-        cp -rf "$THEME_DIR/music/"* "$INSTALL_DIR/music/"
-    fi
-    if [ -d "$THEME_DIR/gifs" ]; then
-        cp -rf "$THEME_DIR/gifs/"* "$INSTALL_DIR/gifs/"
-    fi
-
-    # 4. Instalar biblioteca de áudio just_playback no venv interno se necessário
-    local VENV_PYTHON="$INSTALL_DIR/squashfs-root/bin/.venv/bin/python3"
-    local VENV_PIP="$INSTALL_DIR/squashfs-root/bin/.venv/bin/pip"
-
-    if [ -f "$VENV_PYTHON" ]; then
-        if ! "$VENV_PYTHON" -c "import just_playback" &>/dev/null; then
-            echo "Instalando biblioteca de áudio 'just_playback' no ambiente do ACCELA..."
-            "$VENV_PIP" install just_playback || true
-        fi
-    fi
-
-    echo -e "${GREEN}✓ Tema, player de áudio e assets aplicados com sucesso!${NC}"
-}
+cat > "$CONF_DIR/ACCELA.conf" << 'EOF'
+[General]
+accent_color=#8E3B56
+background_color=#F5F2EB
+user_accent_color=#8E3B56
+user_background_color=#F5F2EB
+font_family=Comfortaa
+play_50hz_hum=false
+play_etw=false
+play_lall=false
+hum_volume=0
+effects_volume=0
+master_volume=80
+auto_skip_single_choice=true
+library_mode=true
+max_downloads=16
+use_steamless=true
+EOF
 
 # ------------------------------------------------------------------------------
-# 5. Configuração de Atalhos e Executável
+# 4. Configurar Lançador e Atalhos
 # ------------------------------------------------------------------------------
-setup_desktop_and_cli() {
-    echo -e "${GREEN}[4/4] Configurando lançador e atalhos do sistema...${NC}"
+echo ""
+echo -e "${GREEN}[4/4] Configurando lançador e atalhos do sistema...${NC}"
 
-    # Script lançador universal
-    cat > "$INSTALL_DIR/ACCELA.AppImage" << 'EOF'
+# Script executável portátil
+cat > "$INSTALL_DIR/ACCELA.AppImage" << 'EOF'
 #!/usr/bin/env bash
 exec "$HOME/.local/share/ACCELA/squashfs-root/AppRun" "$@"
 EOF
-    chmod +x "$INSTALL_DIR/ACCELA.AppImage"
+chmod +x "$INSTALL_DIR/ACCELA.AppImage"
 
-    # Atalho Desktop
-    mkdir -p "$HOME/.local/share/applications"
-    cat > "$HOME/.local/share/applications/ACCELA.desktop" << EOF
+# Atalho .desktop
+mkdir -p "$HOME/.local/share/applications"
+cat > "$HOME/.local/share/applications/ACCELA.desktop" << EOF
 [Desktop Entry]
 Name=ACCELA
 Comment=Gerenciador de jogos estilizado (Tema Customizado por gabesvr)
@@ -277,34 +181,23 @@ Type=Application
 Categories=Utility;Game;
 MimeType=x-scheme-handler/accela;
 EOF
-    chmod +x "$HOME/.local/share/applications/ACCELA.desktop"
-    update-desktop-database "$HOME/.local/share/applications" 2>/dev/null || true
+chmod +x "$HOME/.local/share/applications/ACCELA.desktop"
+update-desktop-database "$HOME/.local/share/applications" 2>/dev/null || true
 
-    # Ícone do sistema
-    mkdir -p "$HOME/.local/share/icons/hicolor/256x256/apps"
-    if [ -f "$INSTALL_DIR/squashfs-root/accela.png" ]; then
-        cp "$INSTALL_DIR/squashfs-root/accela.png" "$HOME/.local/share/icons/hicolor/256x256/apps/accela.png" 2>/dev/null || true
-        gtk-update-icon-cache -f -t "$HOME/.local/share/icons/hicolor" 2>/dev/null || true
-    fi
+# Ícone do sistema
+mkdir -p "$HOME/.local/share/icons/hicolor/256x256/apps"
+if [ -f "$INSTALL_DIR/squashfs-root/accela.png" ]; then
+    cp "$INSTALL_DIR/squashfs-root/accela.png" "$HOME/.local/share/icons/hicolor/256x256/apps/accela.png" 2>/dev/null || true
+    gtk-update-icon-cache -f -t "$HOME/.local/share/icons/hicolor" 2>/dev/null || true
+fi
 
-    # Wrapper CLI no PATH
-    mkdir -p "$HOME/.local/bin"
-    cat > "$HOME/.local/bin/accela" << 'EOF'
+# Wrapper CLI
+mkdir -p "$HOME/.local/bin"
+cat > "$HOME/.local/bin/accela" << 'EOF'
 #!/usr/bin/env bash
 exec "$HOME/.local/share/ACCELA/ACCELA.AppImage" "$@"
 EOF
-    chmod +x "$HOME/.local/bin/accela"
-
-    echo -e "${GREEN}✓ Lançador (.desktop) e comando terminal 'accela' configurados!${NC}"
-}
-
-# ------------------------------------------------------------------------------
-# Execução Principal
-# ------------------------------------------------------------------------------
-install_system_deps
-setup_accela_base
-apply_theme_files
-setup_desktop_and_cli
+chmod +x "$HOME/.local/bin/accela"
 
 echo ""
 echo -e "${CYAN}================================================================${NC}"
@@ -312,18 +205,17 @@ echo -e "${GREEN}${BOLD}✨ INSTALAÇÃO DO ACCELA COM TEMA CONCLUÍDA COM SUCES
 echo -e "${CYAN}================================================================${NC}"
 echo ""
 echo -e "🎮 ${BOLD}Como iniciar:${NC}"
-echo -e "  • Pelo menu de aplicativos: Procure por ${BOLD}ACCELA${NC}"
-echo -e "  • Pelo terminal: Digite ${BOLD}accela${NC}"
+echo -e "  • Menu de aplicativos: ${BOLD}ACCELA${NC}"
+echo -e "  • Pelo terminal: ${BOLD}accela${NC}"
 echo ""
-echo -e "🎵 ${BOLD}Recursos do Tema Gabesvr:${NC}"
-echo -e "  • Player de áudio estético integrado na barra inferior"
-echo -e "  • Mascote dançante Yume Nikki sincronizado com a música"
-echo -e "  • Suporte a espectro de áudio em tempo real (CAVA)"
-echo -e "  • Playlist personalizada em: ${CYAN}~/.local/share/ACCELA/music/${NC}"
-echo -e "  • GIFs estilizados em: ${CYAN}~/.local/share/ACCELA/gifs/${NC}"
+echo -e "🎵 ${BOLD}Recursos do Tema Customizado:${NC}"
+echo -e "  • Fundo pastel Macintosh (#F5F2EB) com destaque (#8E3B56)"
+echo -e "  • Zumbidos elétricos e ruídos de fundo desativados"
+echo -e "  • Music player integrado no rodapé com mascote Yume Nikki"
+echo -e "  • Visualizador CAVA em tempo real"
 echo ""
 echo -e "🙏 ${BOLD}Créditos:${NC}"
-echo -e "  • Ciskão (ciscosweater) pelo projeto Enter The Wired"
-echo -e "  • Tachibana Labs pelo ACCELA original"
+echo -e "  • CiscoSweater (ciskao) pelo projeto Enter The Wired & instaladores"
+echo -e "  • Tachibana Labs / Morrenus pelo ACCELA original"
 echo -e "  • gabesvr pelo tema, player e customizações"
 echo ""
