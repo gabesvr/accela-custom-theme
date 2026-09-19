@@ -26,6 +26,9 @@ Este projeto é uma versão customizada construída sobre o trabalho incrível d
 
 ## ✨ Recursos do Tema Customizado
 
+- 🪟 **Janela Sempre em Float**: Configuração nativa em Qt e regras automáticas para Hyprland para abrir sempre centralizado e flutuante no tamanho ideal (`820x540`).
+- 🎨 **Visual Pastel Macintosh**: Fundo claro retrô (`#F5F2EB`) com acento burgundy (`#8E3B56`), garantindo a identidade visual idêntica para qualquer usuário.
+- 🔇 **Sem Ruídos Estranhos**: Zumbido contínuo de 50Hz e efeitos sonoros elétricos de abertura/fechamento desativados.
 - 🎵 **Aesthetic Music Player Integrado**: Player de música sem bordas integrado diretamente no rodapé da janela principal.
 - 💃 **Mascote Dançante Yume Nikki**: Pixel art animado sincronizado com o status de reprodução das faixas.
 - 📊 **Espectro de Áudio CAVA**: Visualizador de frequências em tempo real estilo terminal.
