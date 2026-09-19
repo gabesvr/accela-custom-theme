@@ -1,0 +1,11 @@
+__pycache__/
+*.py[cod]
+*$py.class
+*.log
+.venv/
+depots/
+hubcap_manifests/
+steam_headers.db
+*.tar.gz
+*.AppImage.orig
+.DS_Store
