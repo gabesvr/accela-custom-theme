@@ -1,6 +1,6 @@
 # accela-easy-install
 
-Custom aesthetic theme, integrated music player, and automated SLSsteam setup for ACCELA on Linux.
+Full installation, custom aesthetic theme, integrated music player, and automated SLSsteam setup for ACCELA on Linux.
 
 <div align="center">
 
@@ -21,7 +21,7 @@ It handles SLSsteam installation and configuration (`PlayNotOwnedGames: yes`), a
 Run the one-line installer:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/gabesvr/accela-custom-theme/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/gabesvr/accela-easy-install/main/install.sh | bash
 ```
 
 The script detects your Linux package manager (Arch/CachyOS, Debian/Ubuntu, Fedora, OpenSUSE, Void), installs dependencies, downloads ACCELA, configures SLSsteam, and applies the theme and shortcuts.
@@ -29,8 +29,8 @@ The script detects your Linux package manager (Arch/CachyOS, Debian/Ubuntu, Fedo
 If you already have ACCELA installed and just want the theme:
 
 ```bash
-git clone https://github.com/gabesvr/accela-custom-theme.git
-cd accela-custom-theme
+git clone https://github.com/gabesvr/accela-easy-install.git
+cd accela-easy-install
 ./apply-theme.sh
 ```
 

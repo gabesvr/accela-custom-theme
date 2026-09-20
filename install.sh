@@ -32,7 +32,7 @@ else
 fi
 
 INSTALL_DIR="$HOME/.local/share/ACCELA"
-REPO_URL="https://github.com/gabesvr/accela-custom-theme"
+REPO_URL="https://github.com/gabesvr/accela-easy-install"
 
 echo -e "${MAGENTA}${BOLD}"
 cat << 'EOF'
