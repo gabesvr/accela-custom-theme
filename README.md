@@ -1,89 +1,32 @@
-# 🌸 ACCELA - Custom Theme & Aesthetic Music Player
+# accela-custom-theme
+
+Custom aesthetic theme, integrated music player, and automated SLSsteam setup for ACCELA on Linux.
 
 <div align="center">
 
-![ACCELA Banner](theme/app_files/res/logo/accela.png)
+![Preview](assets/screenshot.png)
 
-**Gerenciador e downloader de jogos estilizado, inspirado em Serial Experiments Lain com tema visual customizado, Music Player embutido e mascote dançante Yume Nikki.**
-
-[![Linux](https://img.shields.io/badge/Platform-Linux-blue?logo=linux)](https://github.com/gabesvr/accela-custom-theme)
-[![Python](https://img.shields.io/badge/Python-3.13%2B-yellow?logo=python)](https://python.org)
-[![PyQt6](https://img.shields.io/badge/GUI-PyQt6-green?logo=qt)](https://riverbankcomputing.com)
+![Theme Animation](theme/gifs/custom/main.gif)
 
 </div>
 
----
+## Overview
 
-## 🌟 Créditos e Agradecimentos
+This repository provides an automated installation script and custom theme for ACCELA (Serial Experiments Lain themed game client) on Linux.
 
-Este projeto é uma versão customizada construída sobre o trabalho incrível da comunidade:
+It handles SLSsteam installation and configuration (`PlayNotOwnedGames: yes`), applies a minimalist retro theme (`#F5F2EB` background with burgundy accents), disables the 50Hz electrical hum, sets up Hyprland floating window rules, and embeds an aesthetic music player with dancing pixel art.
 
-- **[CiscoSweater (ciskao)](https://github.com/ciscosweater)**: Criador do instalador **[enter-the-wired](https://github.com/ciscosweater/enter-the-wired)** e empacotamento para Linux. Todos os créditos pela engenhosidade dos scripts de instalação e correção de dependências.
-- **Tachibana Labs / Morrenus**: Desenvolvedores do cliente **ACCELA** original inspirado em *Serial Experiments Lain*.
-- **gabesvr**: Criação e integração do **Aesthetic Music Player**, mascote pixel art Yume Nikki, suporte ao CAVA audio visualizer, nova paleta de cores e temas Sonic/Lain.
+## Installation
 
----
-
-## ✨ Recursos do Tema Customizado
-
-- 🚀 **100% Automatizado com SLSsteam**: Baixa, instala e configura o **SLSsteam** automaticamente com `PlayNotOwnedGames: yes` e integração de API ativa.
-- ⚡ **Fast Steam Restart**: Mecanismo otimizado que encerra processos fantasmas (`steamwebhelper`) e limpa travas de IPC/PID, permitindo reinício instantâneo da Steam após downloads.
-- 🪟 **Janela Sempre em Float**: Configuração nativa em Qt e regras automáticas para Hyprland para abrir sempre centralizado e flutuante no tamanho ideal (`820x540`).
-- 🎨 **Visual Pastel Macintosh**: Fundo claro retrô (`#F5F2EB`) com acento burgundy (`#8E3B56`), garantindo a identidade visual idêntica para qualquer usuário.
-- 🔇 **Sem Ruídos Estranhos**: Zumbido contínuo de 50Hz e efeitos sonoros elétricos de abertura/fechamento desativados.
-- 🎵 **Aesthetic Music Player Integrado**: Player de música sem bordas integrado diretamente no rodapé da janela principal.
-- 💃 **Mascote Dançante Yume Nikki**: Pixel art animado sincronizado com o status de reprodução das faixas.
-- 📊 **Espectro de Áudio CAVA**: Visualizador de frequências em tempo real estilo terminal.
-- 🎧 **Playlist Embutida**: Músicas incluídas prontas para tocar (`Snow Strippers`, `WOKAWONA`, etc.) em `~/.local/share/ACCELA/music/`.
-- 🖼️ **GIFs Colorizados Dinâmicos**: Animações temáticas de Lain e temas retrô que reagem às cores da interface.
-- 🎮 **Atalho e Terminal**: Inicialização tanto pelo menu de aplicativos (`.desktop`) quanto pelo terminal com o comando `accela`.
-
----
-
-## 🚀 Instalação Rápida (1 Comando)
-
-Abra o terminal e execute:
+Run the one-line installer:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/gabesvr/accela-custom-theme/main/install.sh | bash
 ```
 
-> O script detecta automaticamente a sua distribuição Linux (CachyOS/Arch, Debian/Ubuntu, Fedora, OpenSUSE, Void), instala as dependências necessárias, prepara o ACCELA, instala e configura o SLSsteam (`playNotOwnedGames = Yes`), aplica o tema customizado e configura os atalhos.
+The script detects your Linux package manager (Arch/CachyOS, Debian/Ubuntu, Fedora, OpenSUSE, Void), installs dependencies, downloads ACCELA, configures SLSsteam, and applies the theme and shortcuts.
 
----
-
-## 🔑 Configuração Inicial: Chave de API Morrenus
-
-Para pesquisar e baixar jogos pelo botão de busca da interface, configure sua chave de API:
-
-1. Acesse **[hubcapmanifest.com](https://hubcapmanifest.com/)** e faça login com seu Discord.
-2. Vá para a página de chaves: **[hubcapmanifest.com/api-keys/user](https://hubcapmanifest.com/api-keys/user)**.
-3. Crie uma nova chave de API (*New API Key*).
-4. Abra o **ACCELA**, clique no ícone de **Engrenagem (Configurações)** ⚙️.
-5. Acesse a aba **Integrações (Integrations)**.
-6. Cole a sua chave no campo **Morrenus API Key** e clique em **OK**.
-
----
-
-## 📖 Como Usar
-
-### 1. Buscando e Baixando
-- Clique no ícone de **Lupa** 🔍.
-- Digite o nome do jogo desejado e pressione Enter.
-- Dê um duplo clique no resultado para iniciar o download.
-
-### 2. Arrastar e Soltar (Sem API Key)
-- Se você tiver o arquivo `.zip` de manifesto de um jogo, basta arrastá-lo diretamente para dentro da janela do ACCELA.
-
-### 3. Personalizando Músicas e Cores
-- **Adicionar suas músicas**: Basta colar arquivos `.mp3` na pasta `~/.local/share/ACCELA/music/`.
-- **Cores & Visual**: No menu de Configurações ⚙️ → aba **Visual**, você pode alterar as cores de destaque e de fundo para combinar com seu rice.
-
----
-
-## 🛠️ Para quem já tem o ACCELA instalado
-
-Se você já tem o ACCELA instalado e quer apenas aplicar o tema e o player:
+If you already have ACCELA installed and just want the theme:
 
 ```bash
 git clone https://github.com/gabesvr/accela-custom-theme.git
@@ -91,9 +34,24 @@ cd accela-custom-theme
 ./apply-theme.sh
 ```
 
----
+## Setup
 
-## 📜 Licença e Isenção de Responsabilidade
+To search and download games directly through the interface:
 
-Este projeto é disponibilizado para fins educacionais e de customização de interface de usuário. Todo o conteúdo multimídia pertence aos seus respectivos detentores de direitos.
-Créditos integrais aos criadores originais citados na seção de créditos.
+1. Log in with Discord at [hubcapmanifest.com](https://hubcapmanifest.com/).
+2. Get your key at [hubcapmanifest.com/api-keys/user](https://hubcapmanifest.com/api-keys/user).
+3. In ACCELA, open Settings (gear icon) -> Integrations.
+4. Paste your Morrenus API Key and save.
+
+You can also drag and drop `.zip` manifest files directly into the window without an API key.
+
+## Custom Music
+
+Drop your `.mp3` files into `~/.local/share/ACCELA/music/`. The player will automatically detect and play them.
+
+## Credits
+
+- [CiscoSweater (ciskao)](https://github.com/ciscosweater) - [enter-the-wired](https://github.com/ciscosweater/enter-the-wired) installer and Linux packaging.
+- [AceSLS](https://github.com/AceSLS/SLSsteam) - SLSsteam.
+- Tachibana Labs / Morrenus - Original ACCELA client.
+- gabesvr - Theme design, music player integration, and automated installer.
