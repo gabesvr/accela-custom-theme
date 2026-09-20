@@ -181,7 +181,15 @@ echo "Aplicando configuração do ACCELA com tema e SLSsteam automatizado..."
 CONF_DIR="$HOME/.config/Tachibana Labs"
 mkdir -p "$CONF_DIR"
 
-cat > "$CONF_DIR/ACCELA.conf" << 'EOF'
+# Preservar chaves de API existentes caso o usuário já tenha configurado
+EXISTING_MORRENUS=""
+EXISTING_SGDB=""
+if [ -f "$CONF_DIR/ACCELA.conf" ]; then
+    EXISTING_MORRENUS=$(grep -E '^morrenus_api_key=' "$CONF_DIR/ACCELA.conf" | cut -d'=' -f2- || true)
+    EXISTING_SGDB=$(grep -E '^sgdb_api_key=' "$CONF_DIR/ACCELA.conf" | cut -d'=' -f2- || true)
+fi
+
+cat > "$CONF_DIR/ACCELA.conf" << EOF
 [General]
 accent_color=#8E3B56
 background_color=#F5F2EB
@@ -200,6 +208,8 @@ sls_config_management=true
 prompt_steam_restart=true
 max_downloads=16
 use_steamless=true
+morrenus_api_key=$EXISTING_MORRENUS
+sgdb_api_key=$EXISTING_SGDB
 EOF
 
 # ------------------------------------------------------------------------------
