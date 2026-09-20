@@ -52,20 +52,63 @@ echo -e "${CYAN}================================================================
 echo ""
 
 # ------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 # 1. Executar os Scripts Originais do Ciskão (Enter The Wired)
 # ------------------------------------------------------------------------------
-echo -e "${GREEN}[1/5] Executando dependências do sistema (fix-deps do Ciskão)...${NC}"
+echo -e "${GREEN}[1/6] Executando dependências do sistema (fix-deps do Ciskão)...${NC}"
 curl -fsSL https://raw.githubusercontent.com/ciscosweater/enter-the-wired/main/fix-deps | bash || true
 
 echo ""
-echo -e "${GREEN}[2/5] Instalando base oficial do ACCELA (accela do Ciskão)...${NC}"
+echo -e "${GREEN}[2/6] Instalando base oficial do ACCELA (accela do Ciskão)...${NC}"
 curl -fsSL https://raw.githubusercontent.com/ciscosweater/enter-the-wired/main/accela | bash
 
 # ------------------------------------------------------------------------------
-# 2. Obter Arquivos do Tema Customizado
+# 2. Instalação e Configuração Automática do SLSsteam (100% Automatizado)
 # ------------------------------------------------------------------------------
 echo ""
-echo -e "${GREEN}[3/5] Baixando e aplicando Tema Customizado & Music Player...${NC}"
+echo -e "${GREEN}[3/6] Instalando e configurando SLSsteam automaticamente...${NC}"
+
+SLS_TMP=$(mktemp -d)
+trap 'rm -rf "$SLS_TMP"' EXIT
+
+SLS_URL=$(curl -fsSL https://api.github.com/repos/AceSLS/SLSsteam/releases/latest 2>/dev/null | grep -o 'https://[^"]*SLSsteam-Any-release\.7z' | head -n 1 || true)
+if [ -z "$SLS_URL" ]; then
+    SLS_URL="https://github.com/AceSLS/SLSsteam/releases/download/20260903114323/SLSsteam-Any-release.7z"
+fi
+
+echo "Baixando SLSsteam ($SLS_URL)..."
+curl -fsSL "$SLS_URL" -o "$SLS_TMP/SLSsteam-Any-release.7z"
+
+echo "Extraindo arquivos do SLSsteam..."
+bsdtar -xf "$SLS_TMP/SLSsteam-Any-release.7z" -C "$SLS_TMP"
+
+mkdir -p "$HOME/.config/fish/conf.d"
+(cd "$SLS_TMP" && chmod +x setup.sh && ./setup.sh install)
+
+if [ -d "$HOME/.config/fish" ]; then
+    echo 'export PATH="$HOME/.local/share/SLSsteam/path:$PATH"' > "$HOME/.config/fish/conf.d/SLSsteam.fish"
+fi
+
+echo "Configurando ~/.config/SLSsteam/config.yaml (PlayNotOwnedGames: yes & API: yes)..."
+mkdir -p "$HOME/.config/SLSsteam"
+if [ ! -f "$HOME/.config/SLSsteam/config.yaml" ] && [ -f "$SLS_TMP/res/config.yaml" ]; then
+    cp "$SLS_TMP/res/config.yaml" "$HOME/.config/SLSsteam/config.yaml"
+fi
+
+if [ -f "$HOME/.config/SLSsteam/config.yaml" ]; then
+    if ! grep -qi "playnotownedgames" "$HOME/.config/SLSsteam/config.yaml"; then
+        sed -i '/DisableFamilyShareLock:/a \\n# Enables playing of not owned games\nPlayNotOwnedGames: yes\nplayNotOwnedGames: yes' "$HOME/.config/SLSsteam/config.yaml"
+    else
+        sed -i -E 's/^[# ]*([Pp]lay[Nn]ot[Oo]wned[Gg]ames\s*:\s*).*/\1yes/' "$HOME/.config/SLSsteam/config.yaml"
+    fi
+    sed -i -E 's/^[# ]*(API\s*:\s*).*/\1yes/' "$HOME/.config/SLSsteam/config.yaml"
+fi
+
+# ------------------------------------------------------------------------------
+# 3. Obter Arquivos do Tema Customizado, Player & Fast Steam Restart Patch
+# ------------------------------------------------------------------------------
+echo ""
+echo -e "${GREEN}[4/6] Baixando e aplicando Tema Customizado, Music Player & Fast Restart...${NC}"
 
 SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
 THEME_DIR="$SCRIPT_DIR/theme"
@@ -99,6 +142,7 @@ mkdir -p "$INSTALL_DIR/music"
 mkdir -p "$INSTALL_DIR/gifs"
 mkdir -p "$INSTALL_DIR/squashfs-root/bin/src/ui"
 mkdir -p "$INSTALL_DIR/squashfs-root/bin/src/managers"
+mkdir -p "$INSTALL_DIR/squashfs-root/bin/src/core"
 mkdir -p "$INSTALL_DIR/squashfs-root/bin/src/res/sonic"
 mkdir -p "$INSTALL_DIR/squashfs-root/bin/src/res/logo"
 
@@ -107,6 +151,7 @@ if [ -d "$THEME_DIR/app_files" ]; then
     [ -f "$THEME_DIR/app_files/main.py" ] && cp -f "$THEME_DIR/app_files/main.py" "$INSTALL_DIR/squashfs-root/bin/src/main.py"
     [ -d "$THEME_DIR/app_files/ui" ] && cp -rf "$THEME_DIR/app_files/ui/"* "$INSTALL_DIR/squashfs-root/bin/src/ui/"
     [ -d "$THEME_DIR/app_files/managers" ] && cp -rf "$THEME_DIR/app_files/managers/"* "$INSTALL_DIR/squashfs-root/bin/src/managers/"
+    [ -d "$THEME_DIR/app_files/core" ] && cp -rf "$THEME_DIR/app_files/core/"* "$INSTALL_DIR/squashfs-root/bin/src/core/"
     [ -d "$THEME_DIR/app_files/res/sonic" ] && cp -rf "$THEME_DIR/app_files/res/sonic/"* "$INSTALL_DIR/squashfs-root/bin/src/res/sonic/"
     [ -d "$THEME_DIR/app_files/res/logo" ] && cp -rf "$THEME_DIR/app_files/res/logo/"* "$INSTALL_DIR/squashfs-root/bin/src/res/logo/"
 fi
@@ -130,9 +175,9 @@ if [ -f "$VENV_PYTHON" ]; then
 fi
 
 # ------------------------------------------------------------------------------
-# 3. Gravar Configuração do Tema (Pastel Macintosh & Silenciar Sons Nativos)
+# 4. Gravar Configuração do ACCELA (Pastel Macintosh, Silenciar Ruídos & Integração SLSsteam)
 # ------------------------------------------------------------------------------
-echo "Aplicando paleta Pastel Macintosh (#F5F2EB / #8E3B56) e silenciando ruídos..."
+echo "Aplicando configuração do ACCELA com tema e SLSsteam automatizado..."
 CONF_DIR="$HOME/.config/Tachibana Labs"
 mkdir -p "$CONF_DIR"
 
@@ -151,14 +196,16 @@ effects_volume=0
 master_volume=80
 auto_skip_single_choice=true
 library_mode=true
+sls_config_management=true
+prompt_steam_restart=true
 max_downloads=16
 use_steamless=true
 EOF
 
 # ------------------------------------------------------------------------------
-# 4. Configurar Janela Flutuante (Window Rules para Hyprland)
+# 5. Configurar Janela Flutuante (Window Rules para Hyprland)
 # ------------------------------------------------------------------------------
-echo -e "${GREEN}[4/5] Configurando regras de janela flutuante (Float)...${NC}"
+echo -e "${GREEN}[5/6] Configurando regras de janela flutuante (Float)...${NC}"
 
 # Hyprland Lua
 if [ -f "$HOME/.config/hypr/hyprland.lua" ]; then
@@ -200,9 +247,9 @@ EOF
 fi
 
 # ------------------------------------------------------------------------------
-# 5. Configurar Lançador e Atalhos
+# 6. Configurar Lançador e Atalhos
 # ------------------------------------------------------------------------------
-echo -e "${GREEN}[5/5] Configurando lançador e atalhos do sistema...${NC}"
+echo -e "${GREEN}[6/6] Configurando lançador e atalhos do sistema...${NC}"
 
 # Script executável portátil
 cat > "$INSTALL_DIR/ACCELA.AppImage" << 'EOF'

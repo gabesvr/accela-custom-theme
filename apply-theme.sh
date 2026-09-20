@@ -37,6 +37,7 @@ mkdir -p "$INSTALL_DIR/music"
 mkdir -p "$INSTALL_DIR/gifs"
 mkdir -p "$INSTALL_DIR/squashfs-root/bin/src/ui"
 mkdir -p "$INSTALL_DIR/squashfs-root/bin/src/managers"
+mkdir -p "$INSTALL_DIR/squashfs-root/bin/src/core"
 mkdir -p "$INSTALL_DIR/squashfs-root/bin/src/res/sonic"
 mkdir -p "$INSTALL_DIR/squashfs-root/bin/src/res/logo"
 
@@ -44,6 +45,7 @@ if [ -d "$THEME_DIR/app_files" ]; then
     [ -f "$THEME_DIR/app_files/main.py" ] && cp -f "$THEME_DIR/app_files/main.py" "$INSTALL_DIR/squashfs-root/bin/src/main.py"
     [ -d "$THEME_DIR/app_files/ui" ] && cp -rf "$THEME_DIR/app_files/ui/"* "$INSTALL_DIR/squashfs-root/bin/src/ui/"
     [ -d "$THEME_DIR/app_files/managers" ] && cp -rf "$THEME_DIR/app_files/managers/"* "$INSTALL_DIR/squashfs-root/bin/src/managers/"
+    [ -d "$THEME_DIR/app_files/core" ] && cp -rf "$THEME_DIR/app_files/core/"* "$INSTALL_DIR/squashfs-root/bin/src/core/"
     [ -d "$THEME_DIR/app_files/res/sonic" ] && cp -rf "$THEME_DIR/app_files/res/sonic/"* "$INSTALL_DIR/squashfs-root/bin/src/res/sonic/"
     [ -d "$THEME_DIR/app_files/res/logo" ] && cp -rf "$THEME_DIR/app_files/res/logo/"* "$INSTALL_DIR/squashfs-root/bin/src/res/logo/"
 fi
@@ -61,8 +63,8 @@ if [ -f "$VENV_PYTHON" ]; then
     fi
 fi
 
-# Configurar cores pastel e silenciar zumbido de fundo
-echo "Aplicando configuração de cores e silenciando zumbido de fundo..."
+# Configurar cores pastel, silenciar zumbido de fundo e integrar SLSsteam
+echo "Aplicando configuração de cores e ativando integração SLSsteam..."
 CONF_DIR="$HOME/.config/Tachibana Labs"
 mkdir -p "$CONF_DIR"
 
@@ -81,9 +83,21 @@ effects_volume=0
 master_volume=80
 auto_skip_single_choice=true
 library_mode=true
+sls_config_management=true
+prompt_steam_restart=true
 max_downloads=16
 use_steamless=true
 EOF
+
+# Garantir configuração no SLSsteam caso esteja instalado
+if [ -f "$HOME/.config/SLSsteam/config.yaml" ]; then
+    if ! grep -qi "playnotownedgames" "$HOME/.config/SLSsteam/config.yaml"; then
+        sed -i '/DisableFamilyShareLock:/a \\n# Enables playing of not owned games\nPlayNotOwnedGames: yes\nplayNotOwnedGames: yes' "$HOME/.config/SLSsteam/config.yaml"
+    else
+        sed -i -E 's/^[# ]*([Pp]lay[Nn]ot[Oo]wned[Gg]ames\s*:\s*).*/\1yes/' "$HOME/.config/SLSsteam/config.yaml"
+    fi
+    sed -i -E 's/^[# ]*(API\s*:\s*).*/\1yes/' "$HOME/.config/SLSsteam/config.yaml"
+fi
 
 # Configurar janela flutuante no Hyprland
 if [ -f "$HOME/.config/hypr/hyprland.lua" ]; then

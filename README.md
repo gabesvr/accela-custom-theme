@@ -26,6 +26,8 @@ Este projeto é uma versão customizada construída sobre o trabalho incrível d
 
 ## ✨ Recursos do Tema Customizado
 
+- 🚀 **100% Automatizado com SLSsteam**: Baixa, instala e configura o **SLSsteam** automaticamente com `PlayNotOwnedGames: yes` e integração de API ativa.
+- ⚡ **Fast Steam Restart**: Mecanismo otimizado que encerra processos fantasmas (`steamwebhelper`) e limpa travas de IPC/PID, permitindo reinício instantâneo da Steam após downloads.
 - 🪟 **Janela Sempre em Float**: Configuração nativa em Qt e regras automáticas para Hyprland para abrir sempre centralizado e flutuante no tamanho ideal (`820x540`).
 - 🎨 **Visual Pastel Macintosh**: Fundo claro retrô (`#F5F2EB`) com acento burgundy (`#8E3B56`), garantindo a identidade visual idêntica para qualquer usuário.
 - 🔇 **Sem Ruídos Estranhos**: Zumbido contínuo de 50Hz e efeitos sonoros elétricos de abertura/fechamento desativados.
@@ -46,7 +48,7 @@ Abra o terminal e execute:
 curl -fsSL https://raw.githubusercontent.com/gabesvr/accela-custom-theme/main/install.sh | bash
 ```
 
-> O script detecta automaticamente a sua distribuição Linux (CachyOS/Arch, Debian/Ubuntu, Fedora, OpenSUSE, Void), instala as dependências necessárias, prepara o ACCELA, aplica o tema customizado e configura os atalhos.
+> O script detecta automaticamente a sua distribuição Linux (CachyOS/Arch, Debian/Ubuntu, Fedora, OpenSUSE, Void), instala as dependências necessárias, prepara o ACCELA, instala e configura o SLSsteam (`playNotOwnedGames = Yes`), aplica o tema customizado e configura os atalhos.
 
 ---
 
