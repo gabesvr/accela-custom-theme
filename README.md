@@ -1,4 +1,4 @@
-# accela-custom-theme
+# accela-easy-install
 
 Custom aesthetic theme, integrated music player, and automated SLSsteam setup for ACCELA on Linux.
 
