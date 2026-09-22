@@ -11,6 +11,8 @@ from PyQt6.QtWidgets import (
 
 from utils.settings import get_settings
 
+from ui.theme import tokens
+
 logger = logging.getLogger(__name__)
 
 
@@ -20,7 +22,7 @@ class CreditsDialog(QDialog):
         self.setWindowTitle("Credits")
         self.setMinimumWidth(400)
         self.setMinimumHeight(250)
-        self.resize(400, 342)  # Set exact size as requested
+        self.resize(420, 430)  # Room for the taller Nunito line height
         self.settings = get_settings()
         self.main_layout = QVBoxLayout(self)
         self.main_window = parent
@@ -64,12 +66,12 @@ class CreditsDialog(QDialog):
 
         # Address information
         address_label = QLabel("Address: Mimorigasaka, Setagaya Ward, Tokyo")
-        address_label.setStyleSheet("font-size: 12px; margin-top: 10px;")
+        address_label.setStyleSheet("font-size: 12px;")
         credits_info_layout.addWidget(address_label)
 
         # Phone information
         phone_label = QLabel("Phone: 858-924-0180")
-        phone_label.setStyleSheet("font-size: 12px; margin-top: 5px;")
+        phone_label.setStyleSheet("font-size: 12px;")
         credits_info_layout.addWidget(phone_label)
 
         credits_group.setLayout(credits_info_layout)
@@ -82,7 +84,7 @@ class CreditsDialog(QDialog):
         tools_label = QLabel(
             "• GreenLuma\n• SLSsteam\n• Steamless\n• DepotDownloaderMod\n• SLScheevo"
         )
-        tools_label.setStyleSheet("font-size: 11px; color: #CCCCCC; margin-left: 15px;")
+        tools_label.setStyleSheet(f"font-size: 11px; color: {tokens().text_muted.name()};")
         special_thanks_layout.addWidget(tools_label)
 
         special_thanks_group.setLayout(special_thanks_layout)

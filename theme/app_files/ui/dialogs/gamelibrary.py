@@ -96,6 +96,8 @@ except ImportError:
         return False
 
 
+from ui.theme import STATUS_BUSY, STATUS_OK, rgba, tokens
+
 logger = logging.getLogger(__name__)
 
 
@@ -175,12 +177,12 @@ class GameItemWidget(QWidget):
 
         status_map = {
             "update_available": ("New version available", self.accent_color),
-            "up_to_date": ("Up to date", "#00FF00"),
-            "checking": ("Checking for updates...", "#FFA500"),
+            "up_to_date": ("Up to date", STATUS_OK),
+            "checking": ("Checking for updates...", STATUS_BUSY),
         }
 
         text, color = status_map.get(
-            update_status, ("Unable to check updates", "#AAAAAA")
+            update_status, ("Unable to check updates", tokens().text_muted.name())
         )
 
         status_label.setText(text)
@@ -261,12 +263,17 @@ class GameLibraryDialog(QDialog):
                 border: none; 
                 border-radius: 4px; 
             }}
-            QListWidget::item {{ 
-                border-bottom: 1px solid #333; 
+            QListWidget::item {{
+                border: none;
+                border-bottom: 1px solid {rgba(tokens().accent, 0.12)};
+                border-radius: 0px;
                 color: {self.accent_color};
             }}
-            QListWidget::item:selected {{ 
-                background-color: #1A1A1A; 
+            QListWidget::item:hover {{
+                background-color: {rgba(tokens().accent, 0.06)};
+            }}
+            QListWidget::item:selected {{
+                background-color: {rgba(tokens().accent, 0.12)};
             }}
             
             QLabel {{ color: {self.accent_color}; }}
@@ -281,7 +288,7 @@ class GameLibraryDialog(QDialog):
             QComboBox QAbstractItemView {{
                 background-color: {self.background_color};
                 color: {self.accent_color};
-                selection-background-color: #222;
+                selection-background-color: {rgba(tokens().accent, 0.15)};
                 border: none;
             }}
         """

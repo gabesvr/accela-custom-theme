@@ -83,22 +83,8 @@ class MorrenusStatsWidget(QWidget):
         self.daily_usage_bar.setFormat("Daily: --")
         self.daily_usage_bar.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-        accent_color = self.settings.value("accent_color", "#C06C84")
-        self.daily_usage_bar.setStyleSheet(
-            f"""
-            QProgressBar {{
-                border: 1px solid #444;
-                border-radius: 0px;
-                text-align: center;
-                color: #fff;
-                background-color: #222;
-                height: 20px;
-            }}
-            QProgressBar::chunk {{
-                background-color: {accent_color};
-            }}
-        """
-        )
+        # Colors and shape come from the global theme stylesheet
+        self.daily_usage_bar.setFixedHeight(20)
         main_layout.addWidget(self.daily_usage_bar)
 
         # Row 2: Stats

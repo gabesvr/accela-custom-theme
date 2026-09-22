@@ -13,7 +13,7 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from components.custom_widgets import ScaledFontLabel, ScaledLabel
+from ui.theme import STATUS_BUSY, STATUS_ERROR, STATUS_OK, display_font, tokens
 from utils.logger import open_log_directory
 from utils.settings import get_settings
 
@@ -24,15 +24,15 @@ class StatusDialog(QDialog):
     """Dialog showing the status of tools for the last installed game."""
 
     # Status colors
-    STATUS_OK = "#00FF00"
-    STATUS_IN_PROGRESS = "#FFA500"
-    STATUS_ERROR = "#FF0000"
+    STATUS_OK = STATUS_OK
+    STATUS_IN_PROGRESS = STATUS_BUSY
+    STATUS_ERROR = STATUS_ERROR
 
     def __init__(self, parent: Optional[QWidget] = None):
         super().__init__(parent)
         self.parent_window = parent
         self.setWindowTitle("Last Download Task Status")
-        self.resize(450, 180)
+        self.resize(460, 250)
         self.setMinimumSize(400, 150)
 
         # UI State placeholders
@@ -107,22 +107,24 @@ class StatusDialog(QDialog):
 
     def _create_header(self) -> None:
         """Create the title and game name label."""
-        title = ScaledFontLabel("Last Download Task Status")
-        title.setStyleSheet("font-size: 14pt;")
+        title = QLabel("Last Download Task Status")
+        title.setFont(display_font(16))
+        title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.layout.addWidget(title)
 
-        game_label = ScaledLabel(self.last_game_name)
-        game_label.setStyleSheet("font-size: 10pt")
+        game_label = QLabel(self.last_game_name)
+        game_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        game_label.setStyleSheet(f"color: {tokens().text_muted.name()}; font-weight: 700;")
         self.layout.addWidget(game_label)
 
     def _create_status_group(self) -> None:
         """Create the group box containing status rows."""
         status_group = QGroupBox()
-        status_group.setStyleSheet("QGroupBox { border: none; }")
+        status_group.setStyleSheet("QGroupBox { margin-top: 4px; padding: 10px 14px; }")
 
         status_layout = QVBoxLayout()
         status_layout.setContentsMargins(0, 0, 0, 0)
-        status_layout.setSpacing(3)
+        status_layout.setSpacing(8)
 
         # Rows
         status_layout.addLayout(
@@ -173,10 +175,11 @@ class StatusDialog(QDialog):
         indicator.setFixedSize(12, 12)
         indicator.setStyleSheet(f"border-radius: 6px; background-color: {color};")
 
-        name_label = ScaledLabel(name)
+        name_label = QLabel(name.strip())
         name_label.setMinimumWidth(150)
+        name_label.setStyleSheet("font-weight: 700;")
 
-        status_label = ScaledLabel(status_text)
+        status_label = QLabel(status_text)
 
         row_layout.addWidget(indicator)
         row_layout.addWidget(name_label)
