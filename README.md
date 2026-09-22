@@ -26,7 +26,7 @@ Funciona em Arch/CachyOS, Debian/Ubuntu, Fedora, openSUSE e Void.
 Com a Steam instalada, rode no terminal:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/gabesvr/accela-easy-install/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/gabesvr/usolinux/main/install.sh | bash
 ```
 
 O script pede a sua senha (`sudo`) para instalar pacotes. No final aparece **USOLINUX INSTALADO COM SUCESSO**.
@@ -74,8 +74,8 @@ Coloque arquivos `.mp3`, `.flac`, `.ogg`, `.wav` ou `.m4a` em `~/.local/share/AC
 Aplique só o tema:
 
 ```bash
-git clone https://github.com/gabesvr/accela-easy-install.git
-cd accela-easy-install
+git clone https://github.com/gabesvr/usolinux.git
+cd usolinux
 ./apply-theme.sh
 ```
 

@@ -32,7 +32,7 @@ else
 fi
 
 INSTALL_DIR="$HOME/.local/share/ACCELA"
-REPO_URL="https://github.com/gabesvr/accela-easy-install"
+REPO_URL="https://github.com/gabesvr/usolinux"
 
 echo -e "${MAGENTA}${BOLD}"
 cat << 'EOF'
