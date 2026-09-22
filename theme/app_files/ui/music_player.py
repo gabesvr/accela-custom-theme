@@ -171,52 +171,81 @@ noise_reduction = 40
 class CavaVisualizerWidget(QWidget):
     """
     Terminal-style CAVA spectrum analyzer with sharp rectangular vertical bars.
-    Flat tops, 90-degree corners, and idle baseline ticks matching terminal CAVA.
+    CAVA and the animation timer only run while music is playing; when paused
+    the bars fall to zero and painting stops.
     """
     def __init__(self, parent=None, bar_count: int = 54, accent_color: str = "#8E3B56"):
         super().__init__(parent)
         self.bar_count = bar_count
         self.accent_color = QColor(accent_color)
         self.is_playing = False
+        self.cava_thread: Optional[CavaThread] = None
 
-        self.current_heights = [0.04] * bar_count
-        self.target_heights = [0.04] * bar_count
+        self.current_heights = [0.0] * bar_count
+        self.target_heights = [0.0] * bar_count
 
         self.setFixedHeight(28)
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
 
-        # Physics interpolation timer (40 FPS)
+        # Physics interpolation timer (40 FPS), only active while bars move
         self.anim_timer = QTimer(self)
         self.anim_timer.setInterval(25)
         self.anim_timer.timeout.connect(self._step_physics)
+
+    def set_accent_color(self, accent_color: str) -> None:
+        self.accent_color = QColor(accent_color)
+        self.update()
+
+    def set_playing(self, playing: bool) -> None:
+        if playing == self.is_playing:
+            return
+        self.is_playing = playing
+        if playing:
+            self._start_cava()
+        else:
+            self._stop_cava()
+        # Keep animating so bars rise or fall smoothly; the timer stops itself at rest
         self.anim_timer.start()
 
-        # Start real Cava background thread
+    def _start_cava(self) -> None:
+        if self.cava_thread is not None:
+            return
         self.cava_thread = CavaThread(bar_count=self.bar_count)
         self.cava_thread.bars_updated.connect(self._on_cava_bars)
         self.cava_thread.start()
 
-    def set_playing(self, playing: bool) -> None:
-        self.is_playing = playing
+    def _stop_cava(self) -> None:
+        if self.cava_thread is None:
+            return
+        self.cava_thread.bars_updated.disconnect(self._on_cava_bars)
+        self.cava_thread.stop()
+        self.cava_thread = None
+        self.target_heights = [0.0] * self.bar_count
 
     def _on_cava_bars(self, vals: list) -> None:
         """Receive actual audio spectrum from CAVA."""
         for i in range(min(len(vals), self.bar_count)):
-            val = vals[i]
-            self.target_heights[i] = max(0.04, min(1.0, val))
+            self.target_heights[i] = max(0.0, min(1.0, vals[i]))
 
     def _step_physics(self) -> None:
         """Smooth interpolation and gravity falloff for terminal cava feel."""
         for i in range(self.bar_count):
-            target = self.target_heights[i] if self.is_playing else 0.04
+            target = self.target_heights[i] if self.is_playing else 0.0
             if target > self.current_heights[i]:
                 self.current_heights[i] += (target - self.current_heights[i]) * 0.65
             else:
                 self.current_heights[i] += (target - self.current_heights[i]) * 0.25
+
+        if not self.is_playing and max(self.current_heights) < 0.01:
+            self.current_heights = [0.0] * self.bar_count
+            self.anim_timer.stop()
         self.update()
 
     def paintEvent(self, event) -> None:
         """Draw crisp rectangular terminal bars with sharp flat tops."""
+        if max(self.current_heights) <= 0.0:
+            return
+
         painter = QPainter(self)
         # Avoid blurring sharp edges: no antialiasing on geometry
         painter.setRenderHint(QPainter.RenderHint.Antialiasing, False)
@@ -229,27 +258,20 @@ class CavaVisualizerWidget(QWidget):
         used_w = self.bar_count * bar_w + total_gaps
         start_x = int((w - used_w) / 2)
 
-        # Subtle vertical gradient matching terminal aesthetic
+        # Subtle vertical gradient derived from the accent color
         grad = QLinearGradient(0, h, 0, 0)
         grad.setColorAt(0.0, self.accent_color)
-        grad.setColorAt(1.0, QColor("#C0647F"))
-
-        painter.setBrush(grad)
-        painter.setPen(Qt.PenStyle.NoPen)
+        grad.setColorAt(1.0, self.accent_color.lighter(140))
 
         for i in range(self.bar_count):
+            bar_h = int(self.current_heights[i] * (h - 2))
+            if bar_h <= 0:
+                continue
             x = start_x + i * (bar_w + gap)
-            if self.is_playing:
-                bar_h = max(2, int(self.current_heights[i] * (h - 2)))
-            else:
-                bar_h = 2 # Flat idle baseline tick
-
-            y = h - bar_h
-            painter.fillRect(int(x), int(y), int(bar_w), int(bar_h), grad)
+            painter.fillRect(int(x), h - bar_h, int(bar_w), bar_h, grad)
 
     def close(self):
-        if hasattr(self, "cava_thread"):
-            self.cava_thread.stop()
+        self._stop_cava()
         self.anim_timer.stop()
         super().close()
 
@@ -264,6 +286,8 @@ class MusicPlayerWidget(QWidget):
         self.accent_color = accent_color
         self.bg_color = bg_color
         self.setObjectName("musicPlayerWidget")
+        # Set when a track starts so the tick loop can detect when it finishes
+        self._track_running = False
 
         # Audio engine
         self.playback = Playback()
@@ -304,12 +328,28 @@ class MusicPlayerWidget(QWidget):
         if self.playlist:
             self._prepare_track(0, autoplay=False)
 
+    def _rgba(self, alpha: float) -> str:
+        """Accent color as a CSS rgba() string with the given alpha."""
+        c = QColor(self.accent_color)
+        return f"rgba({c.red()}, {c.green()}, {c.blue()}, {alpha})"
+
+    def _faded(self, amount: float) -> str:
+        """Accent color blended into the background (0 = background, 1 = accent)."""
+        a, b = QColor(self.accent_color), QColor(self.bg_color)
+        mix = lambda x, y: round(y + (x - y) * amount)
+        return QColor(mix(a.red(), b.red()), mix(a.green(), b.green()), mix(a.blue(), b.blue())).name()
+
+    def _icon(self, name: str, size: int, color: Optional[str] = None) -> QIcon:
+        return make_svg_icon(SVG_ICONS[name](color or self.accent_color), size)
+
+    def _set_play_icon(self, playing: bool) -> None:
+        self.play_btn.setIcon(self._icon("pause" if playing else "play", 16, self.bg_color))
+
     def _load_playlist(self) -> None:
         """Scan music directory for tracks (MP3, FLAC, WAV, OGG, M4A)."""
         music_dir = Path.home() / ".local/share/ACCELA/music"
         music_dir.mkdir(parents=True, exist_ok=True)
         user_music_accela = Path.home() / "Music/ACCELA"
-        downloads_dir = Path.home() / "Downloads"
 
         extensions = ("*.mp3", "*.flac", "*.wav", "*.ogg", "*.m4a")
         candidates = []
@@ -318,8 +358,6 @@ class MusicPlayerWidget(QWidget):
             candidates.extend(glob.glob(str(music_dir / ext)))
             if user_music_accela.exists():
                 candidates.extend(glob.glob(str(user_music_accela / ext)))
-            if downloads_dir.exists():
-                candidates.extend(glob.glob(str(downloads_dir / ext)))
 
         candidates.sort()
         seen = set()
@@ -333,14 +371,10 @@ class MusicPlayerWidget(QWidget):
     def _load_dance_gifs(self) -> None:
         """Scan gifs directory for Yume Nikki dancing GIFs."""
         yumi_dir = Path.home() / ".local/share/ACCELA/gifs/yumi"
-        downloads_dir = Path.home() / "Downloads"
 
         candidates = []
         if yumi_dir.exists():
             candidates.extend(sorted(glob.glob(str(yumi_dir / "*.gif"))))
-        if downloads_dir.exists():
-            candidates.extend(sorted(glob.glob(str(downloads_dir / "*yume*.gif"))))
-            candidates.extend(sorted(glob.glob(str(downloads_dir / "*monoko*.gif"))))
 
         seen = set()
         self.gif_files = []
@@ -438,7 +472,7 @@ class MusicPlayerWidget(QWidget):
 
         self.play_btn = QPushButton()
         self.play_btn.setObjectName("playBtn")
-        self.play_btn.setIcon(make_svg_icon(SVG_ICONS["play"]("#F5F2EB"), 16))
+        self.play_btn.setIcon(self._icon("play", 16, self.bg_color))
         self.play_btn.setFixedSize(32, 32)
         self.play_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
         self.play_btn.setToolTip("Reproduzir / Pausar")
@@ -461,7 +495,7 @@ class MusicPlayerWidget(QWidget):
         self.loop_btn.setFixedSize(28, 28)
         self.loop_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
         self.loop_btn.setToolTip("Repetir playlist")
-        self.loop_btn.setStyleSheet("background-color: rgba(142, 59, 86, 0.15);")
+        self._update_loop_button()
         self.loop_btn.clicked.connect(self._toggle_loop)
         controls_row.addWidget(self.loop_btn)
 
@@ -513,7 +547,7 @@ class MusicPlayerWidget(QWidget):
             }}
 
             QPushButton#actionBtn:hover {{
-                background-color: rgba(142, 59, 86, 0.12);
+                background-color: {self._rgba(0.12)};
             }}
 
             QPushButton#playBtn {{
@@ -524,13 +558,13 @@ class MusicPlayerWidget(QWidget):
             }}
 
             QPushButton#playBtn:hover {{
-                background-color: #A34865;
+                background-color: {QColor(self.accent_color).lighter(115).name()};
             }}
 
             /* Scrubber styling */
             QSlider#trackScrubber::groove:horizontal {{
                 height: 3px;
-                background: rgba(142, 59, 86, 0.18);
+                background: {self._rgba(0.18)};
                 border-radius: 1px;
             }}
 
@@ -552,13 +586,13 @@ class MusicPlayerWidget(QWidget):
                 height: 12px;
                 margin: -4.5px 0;
                 border-radius: 6px;
-                background: #6E223A;
+                background: {QColor(self.accent_color).darker(125).name()};
             }}
 
             /* Volume slider */
             QSlider#volumeSlider::groove:horizontal {{
                 height: 3px;
-                background: rgba(142, 59, 86, 0.18);
+                background: {self._rgba(0.18)};
                 border-radius: 1px;
             }}
 
@@ -606,6 +640,16 @@ class MusicPlayerWidget(QWidget):
         if self.playback.playing and not self.playback.paused:
             self.next_dance_gif()
 
+    def _set_playing_state(self, playing: bool) -> None:
+        """Sync play button, visualizer and mascot with the playback state."""
+        self._set_play_icon(playing)
+        self.visualizer.set_playing(playing)
+        if self.dance_movie:
+            if playing:
+                self.dance_movie.start()
+            else:
+                self.dance_movie.stop()
+
     def _prepare_track(self, index: int, autoplay: bool = True) -> None:
         """Load track at given index."""
         if not self.playlist:
@@ -621,20 +665,18 @@ class MusicPlayerWidget(QWidget):
         try:
             self.playback.load_file(track_path)
             self.playback.set_volume(self.volume if not self.is_muted else 0.0)
+            self.progress_slider.setValue(0)
             self._update_time_label(0, self.playback.duration)
 
             if autoplay:
                 self.playback.play()
-                self.play_btn.setIcon(make_svg_icon(SVG_ICONS["pause"]("#F5F2EB"), 16))
-                self.visualizer.set_playing(True)
-                if self.dance_movie:
-                    self.dance_movie.start()
+                self._track_running = True
             else:
-                self.play_btn.setIcon(make_svg_icon(SVG_ICONS["play"]("#F5F2EB"), 16))
-                self.visualizer.set_playing(False)
-                if self.dance_movie:
-                    self.dance_movie.stop()
+                self._track_running = False
+            self._set_playing_state(autoplay)
         except Exception as e:
+            logger.warning(f"Could not load track {track_path}: {e}")
+            self._track_running = False
             self.title_label.setText(f"Erro ao carregar: {title}")
 
     def toggle_play(self) -> None:
@@ -642,25 +684,16 @@ class MusicPlayerWidget(QWidget):
         if not self.playlist:
             return
 
-        if self.playback.playing:
-            if self.playback.paused:
-                self.playback.resume()
-                self.play_btn.setIcon(make_svg_icon(SVG_ICONS["pause"]("#F5F2EB"), 16))
-                self.visualizer.set_playing(True)
-                if self.dance_movie:
-                    self.dance_movie.start()
-            else:
-                self.playback.pause()
-                self.play_btn.setIcon(make_svg_icon(SVG_ICONS["play"]("#F5F2EB"), 16))
-                self.visualizer.set_playing(False)
-                if self.dance_movie:
-                    self.dance_movie.stop()
+        if self.playback.active and not self.playback.paused:
+            self.playback.pause()
+            self._set_playing_state(False)
+        elif self.playback.active:
+            self.playback.resume()
+            self._set_playing_state(True)
         else:
             self.playback.play()
-            self.play_btn.setIcon(make_svg_icon(SVG_ICONS["pause"]("#F5F2EB"), 16))
-            self.visualizer.set_playing(True)
-            if self.dance_movie:
-                self.dance_movie.start()
+            self._track_running = True
+            self._set_playing_state(True)
 
     def next_track(self) -> None:
         """Play next track and switch dance animation."""
@@ -682,9 +715,16 @@ class MusicPlayerWidget(QWidget):
     def _toggle_loop(self) -> None:
         """Toggle playlist loop mode."""
         self.loop_mode = not self.loop_mode
-        self.loop_btn.setStyleSheet(
-            "background-color: rgba(142, 59, 86, 0.15);" if self.loop_mode else "opacity: 0.35;"
-        )
+        self._update_loop_button()
+
+    def _update_loop_button(self) -> None:
+        """Highlight the loop button when on; fade its icon when off."""
+        if self.loop_mode:
+            self.loop_btn.setIcon(self._icon("loop", 16))
+            self.loop_btn.setStyleSheet(f"background-color: {self._rgba(0.15)};")
+        else:
+            self.loop_btn.setIcon(self._icon("loop", 16, self._faded(0.35)))
+            self.loop_btn.setStyleSheet("background-color: transparent;")
 
     def _toggle_mute(self) -> None:
         """Toggle mute / unmute."""
@@ -730,23 +770,26 @@ class MusicPlayerWidget(QWidget):
         tot_str = self._format_time(max(0, total))
         self.time_label.setText(f"{cur_str} / {tot_str}")
 
+    def _on_track_finished(self) -> None:
+        """Advance the playlist, or stop at the end when loop is off."""
+        if self.loop_mode or self.current_track_idx + 1 < len(self.playlist):
+            self.next_track()
+        else:
+            self._set_playing_state(False)
+            self.progress_slider.setValue(0)
+            self._update_time_label(0, self.playback.duration)
+
     def _on_timer_tick(self) -> None:
         """Check playback status and update slider."""
+        # just_playback drops `active` back to False once a track plays to the end
         if not self.playback.active:
+            if self._track_running:
+                self._track_running = False
+                self._on_track_finished()
             return
 
         duration = self.playback.duration
         curr_pos = self.playback.curr_pos
-
-        if not self.playback.playing and not self.playback.paused and curr_pos > 0:
-            if self.loop_mode or self.current_track_idx + 1 < len(self.playlist):
-                self.next_track()
-            else:
-                self.play_btn.setIcon(make_svg_icon(SVG_ICONS["play"]("#F5F2EB"), 16))
-                self.visualizer.set_playing(False)
-                if self.dance_movie:
-                    self.dance_movie.stop()
-            return
 
         if duration > 0 and not self.is_user_scrubbing:
             fraction = min(1.0, max(0.0, curr_pos / duration))
