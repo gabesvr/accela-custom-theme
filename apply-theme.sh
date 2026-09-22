@@ -140,6 +140,8 @@ set_conf_key play_etw false "$THEME_MODE"
 set_conf_key play_lall false "$THEME_MODE"
 set_conf_key hum_volume 0 "$THEME_MODE"
 set_conf_key effects_volume 0 "$THEME_MODE"
+set_conf_key font "Nunito" "$THEME_MODE"
+set_conf_key font-size 10 "$THEME_MODE"
 
 set_conf_key master_volume 80 default
 set_conf_key auto_skip_single_choice true default
