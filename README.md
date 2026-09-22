@@ -14,7 +14,16 @@ Full installation, custom aesthetic theme, integrated music player, and automate
 
 This repository provides an automated installation script and custom theme for ACCELA (Serial Experiments Lain themed game client) on Linux.
 
-It handles SLSsteam installation and configuration (`PlayNotOwnedGames: yes`), applies a minimalist retro theme (`#F5F2EB` background with burgundy accents), disables the 50Hz electrical hum, sets up Hyprland floating window rules, and embeds an aesthetic music player with dancing pixel art.
+It handles SLSsteam installation and configuration (`PlayNotOwnedGames: yes`), applies a dreamy Y2K theme, disables the 50Hz electrical hum, sets up Hyprland floating window rules, and embeds an aesthetic music player with dancing pixel art.
+
+### Theme
+
+- Soft pastel gradients, rounded cards and pill buttons across the main window and every dialog, all derived from the accent and background colors you pick in Settings → Style.
+- Nunito for text and Silkscreen for pixel titles (both bundled, SIL Open Font License).
+- While a game downloads, a Yume Nikki dancer appears over a glowing stage with twinkling sparkles.
+- Floating music player card with a real-time CAVA visualizer.
+
+Re-running `install.sh` or `apply-theme.sh` keeps your settings; theme colors are only set on the first apply.
 
 ## Installation
 
