@@ -20,6 +20,8 @@ from PyQt6.QtCore import Qt, QTimer, QThread, pyqtSignal, QByteArray, QRectF
 from PyQt6.QtGui import QMovie, QFont, QCursor, QColor, QPainter, QLinearGradient, QIcon, QPixmap
 from PyQt6.QtSvg import QSvgRenderer
 from PyQt6.QtWidgets import (
+    QFrame,
+    QGraphicsDropShadowEffect,
     QWidget,
     QHBoxLayout,
     QVBoxLayout,
@@ -29,6 +31,8 @@ from PyQt6.QtWidgets import (
     QSizePolicy,
 )
 from just_playback import Playback
+
+from ui.theme import mix, rgba, tokens
 
 logger = logging.getLogger(__name__)
 
@@ -170,7 +174,7 @@ noise_reduction = 40
 
 class CavaVisualizerWidget(QWidget):
     """
-    Terminal-style CAVA spectrum analyzer with sharp rectangular vertical bars.
+    CAVA spectrum analyzer drawn as soft rounded bars.
     CAVA and the animation timer only run while music is playing; when paused
     the bars fall to zero and painting stops.
     """
@@ -184,7 +188,7 @@ class CavaVisualizerWidget(QWidget):
         self.current_heights = [0.0] * bar_count
         self.target_heights = [0.0] * bar_count
 
-        self.setFixedHeight(28)
+        self.setFixedHeight(22)
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
 
         # Physics interpolation timer (40 FPS), only active while bars move
@@ -247,28 +251,30 @@ class CavaVisualizerWidget(QWidget):
             return
 
         painter = QPainter(self)
-        # Avoid blurring sharp edges: no antialiasing on geometry
-        painter.setRenderHint(QPainter.RenderHint.Antialiasing, False)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
+        painter.setPen(Qt.PenStyle.NoPen)
 
         w = self.width()
         h = self.height()
-        gap = 2
+        gap = 3
         total_gaps = (self.bar_count - 1) * gap
         bar_w = max(2, int((w - total_gaps) / self.bar_count))
         used_w = self.bar_count * bar_w + total_gaps
         start_x = int((w - used_w) / 2)
 
-        # Subtle vertical gradient derived from the accent color
+        # Accent at the base fading up into the theme's lilac
         grad = QLinearGradient(0, h, 0, 0)
         grad.setColorAt(0.0, self.accent_color)
-        grad.setColorAt(1.0, self.accent_color.lighter(140))
+        grad.setColorAt(1.0, mix(tokens().dream, self.accent_color, 0.6))
+        painter.setBrush(grad)
 
+        radius = bar_w / 2
         for i in range(self.bar_count):
-            bar_h = int(self.current_heights[i] * (h - 2))
-            if bar_h <= 0:
+            bar_h = self.current_heights[i] * (h - 2)
+            if bar_h < 1:
                 continue
             x = start_x + i * (bar_w + gap)
-            painter.fillRect(int(x), h - bar_h, int(bar_w), bar_h, grad)
+            painter.drawRoundedRect(QRectF(x, h - bar_h, bar_w, bar_h), radius, radius)
 
     def close(self):
         self._stop_cava()
@@ -392,26 +398,41 @@ class MusicPlayerWidget(QWidget):
 
     def _setup_ui(self) -> None:
         """Setup frameless, clean, organized player layout."""
-        self.setFixedHeight(110)
+        self.setFixedHeight(122)
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
 
-        # Outer layout: no card, transparent background
-        main_layout = QHBoxLayout(self)
-        main_layout.setContentsMargins(22, 2, 22, 8)
-        main_layout.setSpacing(16)
+        # Floating translucent card with a soft accent shadow
+        outer = QVBoxLayout(self)
+        outer.setContentsMargins(0, 2, 0, 8)
+        self.card = QFrame()
+        self.card.setObjectName("playerCard")
+        shadow = QGraphicsDropShadowEffect(self.card)
+        shadow.setBlurRadius(28)
+        shadow.setOffset(0, 4)
+        shadow_color = QColor(self.accent_color)
+        shadow_color.setAlpha(45)
+        shadow.setColor(shadow_color)
+        self.card.setGraphicsEffect(shadow)
+        outer.addWidget(self.card)
+
+        main_layout = QHBoxLayout(self.card)
+        main_layout.setContentsMargins(14, 8, 18, 8)
+        main_layout.setSpacing(14)
 
         # 1. Left: Dancing Yumi Mascot (pure pixel art, no text, interactive)
         self.dance_label = QLabel()
         self.dance_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.dance_label.setScaledContents(True)
-        self.dance_label.setFixedSize(68, 68)
+        self.dance_label.setFixedSize(60, 60)
         self.dance_label.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
         self.dance_label.setToolTip("Clique para trocar a dança")
         self.dance_label.mousePressEvent = lambda e: self.next_dance_gif()
 
-        mascot_container = QWidget()
+        mascot_container = QFrame()
+        mascot_container.setObjectName("mascotBubble")
+        mascot_container.setFixedSize(76, 76)
         mascot_layout = QVBoxLayout(mascot_container)
-        mascot_layout.setContentsMargins(0, 0, 0, 0)
+        mascot_layout.setContentsMargins(8, 8, 8, 8)
         mascot_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
         mascot_layout.addWidget(self.dance_label)
 
@@ -428,19 +449,17 @@ class MusicPlayerWidget(QWidget):
         info_row.setContentsMargins(0, 0, 0, 0)
 
         self.title_label = QLabel("Nenhuma música carregada")
-        self.title_label.setStyleSheet(
-            f"color: {self.accent_color}; font-weight: bold; font-size: 12px;"
-        )
+        self.title_label.setObjectName("trackTitle")
         info_row.addWidget(self.title_label, 1)
 
         self.time_label = QLabel("00:00 / 00:00")
-        self.time_label.setStyleSheet(f"color: {self.accent_color}; opacity: 0.65; font-size: 11px;")
+        self.time_label.setObjectName("trackTime")
         info_row.addWidget(self.time_label)
 
         right_layout.addLayout(info_row)
 
         # Row 2: CAVA Terminal Visualizer Bars (54 rectangular vertical bars)
-        self.visualizer = CavaVisualizerWidget(self, bar_count=54, accent_color=self.accent_color)
+        self.visualizer = CavaVisualizerWidget(self, bar_count=44, accent_color=self.accent_color)
         right_layout.addWidget(self.visualizer)
 
         # Row 3: Scrubber slider
@@ -532,11 +551,38 @@ class MusicPlayerWidget(QWidget):
         self._update_dance_gif()
 
     def _apply_styles(self) -> None:
-        """Apply frameless, modern styles with Comfortaa typography."""
+        """Card, bubble and control styles derived from the theme tokens."""
+        t = tokens()
+        accent = t.accent.name()
         style = f"""
             QWidget#musicPlayerWidget {{
                 background: transparent;
                 border: none;
+            }}
+
+            QFrame#playerCard {{
+                background-color: {rgba(t.surface, 0.72)};
+                border: 1px solid {t.border.name()};
+                border-radius: 20px;
+            }}
+
+            QFrame#mascotBubble {{
+                background: qradialgradient(cx:0.5, cy:0.5, radius:0.6, fx:0.5, fy:0.4,
+                    stop:0 {rgba(t.dream, 0.55)}, stop:1 {rgba(t.accent, 0.10)});
+                border: 1px solid {rgba(t.accent, 0.15)};
+                border-radius: 38px;
+            }}
+
+            QLabel#trackTitle {{
+                color: {accent};
+                font-size: 10pt;
+                font-weight: 800;
+            }}
+
+            QLabel#trackTime {{
+                color: {t.text_muted.name()};
+                font-size: 9pt;
+                font-weight: 600;
             }}
 
             QPushButton#actionBtn {{
@@ -551,62 +597,45 @@ class MusicPlayerWidget(QWidget):
             }}
 
             QPushButton#playBtn {{
-                background-color: {self.accent_color};
+                background: {t.accent_gradient()};
                 border: none;
                 border-radius: 16px;
                 padding: 0px;
             }}
 
             QPushButton#playBtn:hover {{
-                background-color: {QColor(self.accent_color).lighter(115).name()};
+                background: {t.accent_hover.name()};
             }}
 
-            /* Scrubber styling */
-            QSlider#trackScrubber::groove:horizontal {{
-                height: 3px;
-                background: {self._rgba(0.18)};
-                border-radius: 1px;
+            QSlider#trackScrubber::groove:horizontal,
+            QSlider#volumeSlider::groove:horizontal {{
+                height: 4px;
+                background: {self._rgba(0.15)};
+                border-radius: 2px;
             }}
 
-            QSlider#trackScrubber::sub-page:horizontal {{
-                background: {self.accent_color};
-                border-radius: 1px;
+            QSlider#trackScrubber::sub-page:horizontal,
+            QSlider#volumeSlider::sub-page:horizontal {{
+                background: {t.accent_gradient()};
+                border-radius: 2px;
             }}
 
-            QSlider#trackScrubber::handle:horizontal {{
-                width: 8px;
-                height: 8px;
-                margin: -2.5px 0;
-                border-radius: 4px;
-                background: {self.accent_color};
+            QSlider#trackScrubber::handle:horizontal,
+            QSlider#volumeSlider::handle:horizontal {{
+                width: 10px;
+                height: 10px;
+                margin: -3px 0;
+                border-radius: 5px;
+                background: {t.surface.name()};
+                border: 2px solid {accent};
             }}
 
             QSlider#trackScrubber::handle:horizontal:hover {{
                 width: 12px;
                 height: 12px;
-                margin: -4.5px 0;
+                margin: -4px 0;
                 border-radius: 6px;
-                background: {QColor(self.accent_color).darker(125).name()};
-            }}
-
-            /* Volume slider */
-            QSlider#volumeSlider::groove:horizontal {{
-                height: 3px;
-                background: {self._rgba(0.18)};
-                border-radius: 1px;
-            }}
-
-            QSlider#volumeSlider::sub-page:horizontal {{
-                background: {self.accent_color};
-                border-radius: 1px;
-            }}
-
-            QSlider#volumeSlider::handle:horizontal {{
-                width: 8px;
-                height: 8px;
-                margin: -2.5px 0;
-                border-radius: 4px;
-                background: {self.accent_color};
+                background: {accent};
             }}
         """
         self.setStyleSheet(style)

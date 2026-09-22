@@ -14,6 +14,7 @@ from PyQt6.QtGui import (
     QShortcut,
 )
 from PyQt6.QtWidgets import (
+    QFrame,
     QLabel,
     QMainWindow,
     QMessageBox,
@@ -25,7 +26,6 @@ from PyQt6.QtWidgets import (
     QHBoxLayout,
 )
 
-from components.custom_widgets import ScaledFontLabel, ScaledLabel
 from managers.audio_manager import AudioManager
 from managers.game_manager import GameManager
 from managers.gif_manager import GIFManager
@@ -43,6 +43,8 @@ from utils.logger import qt_log_handler
 from utils.paths import Paths
 from utils.settings import get_settings
 from ui.music_player import MusicPlayerWidget
+from ui.dream_stage import DreamStage
+from ui.theme import display_font, rgba, tokens
 
 logger = logging.getLogger(__name__)
 
@@ -364,39 +366,70 @@ class MainWindow(QMainWindow):
         self._create_progress_section()
 
     def _create_drop_zone(self) -> None:
-        """Create the drag and drop area."""
+        """Create the drag and drop area: a dashed dream card around the stage."""
         self.drop_zone_container = QWidget()
+        self.drop_zone_container.setObjectName("drop_zone_container")
         self.drop_zone_container.setSizePolicy(
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
         )
-        self.drop_zone_layout = QVBoxLayout(self.drop_zone_container)
-        self.drop_zone_layout.setContentsMargins(0, 0, 0, 0)
-        self.drop_zone_layout.setSpacing(0)
+        outer = QVBoxLayout(self.drop_zone_container)
+        outer.setContentsMargins(16, 14, 16, 4)
+        outer.setSpacing(0)
 
-        self.drop_zone_gif = ScaledLabel()
-        self.drop_zone_gif.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.drop_card = QFrame()
+        self.drop_card.setObjectName("dropCard")
+        outer.addWidget(self.drop_card)
+
+        self.drop_zone_layout = QVBoxLayout(self.drop_card)
+        self.drop_zone_layout.setContentsMargins(8, 8, 8, 10)
+        self.drop_zone_layout.setSpacing(2)
+
+        self.drop_zone_gif = DreamStage()
         self.drop_zone_gif.setMinimumHeight(150)
-        self.drop_zone_gif.setSizePolicy(
-            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
-        )
 
-        self.drop_text_label = ScaledFontLabel("Drag and Drop Zip here")
+        self.drop_text_label = QLabel("Drag and Drop Zip here")
+        self.drop_text_label.setObjectName("dropText")
         self.drop_text_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.drop_text_label.setSizePolicy(
-            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
-        )
-        self.drop_text_label.setMinimumHeight(32)
-        self.drop_text_label.setMaximumHeight(48)
+        self.drop_text_label.setWordWrap(True)
+        self.drop_text_label.setFont(display_font(16))
+        self.drop_text_label.setMinimumHeight(28)
 
         self.drop_zone_layout.addWidget(self.drop_zone_gif, 9)
-        self.drop_zone_layout.addWidget(self.drop_text_label, 1)
+        self.drop_zone_layout.addWidget(self.drop_text_label, 0)
         self.main_layout.addWidget(self.drop_zone_container, 10)
+        self._update_drop_card_style()
+
+    def _update_drop_card_style(self) -> None:
+        t = tokens()
+        self.drop_card.setStyleSheet(
+            f"""
+            QFrame#dropCard {{
+                background-color: {rgba(t.surface, 0.45)};
+                border: 2px dashed {rgba(t.accent, 0.28)};
+                border-radius: 24px;
+            }}
+            QFrame#dropCard[dragging="true"] {{
+                background-color: {rgba(t.dream, 0.22)};
+                border: 2px dashed {t.accent.name()};
+            }}
+            QLabel#dropText {{
+                color: {t.accent.name()};
+                letter-spacing: 1px;
+            }}
+        """
+        )
+
+    def _set_drop_highlight(self, active: bool) -> None:
+        self.drop_card.setProperty("dragging", active)
+        self.drop_card.style().unpolish(self.drop_card)
+        self.drop_card.style().polish(self.drop_card)
 
     def _create_progress_section(self) -> None:
         """Create the progress bar and speed label."""
         self.progress_container = QWidget()
         self.progress_layout = QVBoxLayout(self.progress_container)
-        self.progress_layout.setContentsMargins(20, 5, 20, 5)
+        self.progress_layout.setContentsMargins(22, 6, 22, 2)
+        self.progress_layout.setSpacing(2)
 
         self.progress_bar = QProgressBar()
         self.progress_bar.setVisible(False)
@@ -404,6 +437,7 @@ class MainWindow(QMainWindow):
         self.progress_layout.addWidget(self.progress_bar)
 
         self.speed_label = QLabel("")
+        self.speed_label.setObjectName("speedLabel")
         self.speed_label.setAlignment(Qt.AlignmentFlag.AlignRight)
         self.speed_label.setVisible(False)
         self.progress_layout.addWidget(self.speed_label)
@@ -414,8 +448,8 @@ class MainWindow(QMainWindow):
         """Create the bottom section with queue and music player."""
         self.bottom_widget = QWidget()
         self.bottom_layout = QVBoxLayout(self.bottom_widget)
-        self.bottom_layout.setContentsMargins(0, 0, 0, 0)
-        self.bottom_layout.setSpacing(0)
+        self.bottom_layout.setContentsMargins(16, 4, 16, 4)
+        self.bottom_layout.setSpacing(6)
 
         self.ui_state.setup_queue_panel()
         self.bottom_layout.addWidget(self.ui_state.queue_widget)
@@ -465,22 +499,15 @@ class MainWindow(QMainWindow):
         self._update_progress_bar_style()
 
     def _update_progress_bar_style(self) -> None:
-        """Update progress bar styling."""
-        self.progress_bar.setStyleSheet(
-            f"""
-            QProgressBar {{
-                max-height: 10px;
-                border: 1px solid {self.accent_color};
-                border-radius: 5px;
-                text-align: center;
-                color: #FFFFFF;
-            }}
-            QProgressBar::chunk {{
-                background-color: {self.accent_color};
-                border-radius: 5px;
-            }}
-        """
-        )
+        """Slim dreamy progress bar; colors come from the global theme."""
+        t = tokens()
+        self.progress_bar.setFixedHeight(14)
+        if self.speed_label is not None:
+            self.speed_label.setStyleSheet(
+                f"color: {t.text_muted.name()}; font-size: 9pt; font-weight: 600;"
+            )
+        if hasattr(self, "drop_card"):
+            self._update_drop_card_style()
 
     def open_settings(self) -> None:
         dialog = SettingsDialog(self)
@@ -515,8 +542,14 @@ class MainWindow(QMainWindow):
 
         if has_zip:
             event.acceptProposedAction()
+            self._set_drop_highlight(True)
+
+    def dragLeaveEvent(self, event) -> None:
+        self._set_drop_highlight(False)
+        super().dragLeaveEvent(event)
 
     def dropEvent(self, event: QDropEvent) -> None:
+        self._set_drop_highlight(False)
         urls = event.mimeData().urls()
         new_jobs = [
             url.toLocalFile()

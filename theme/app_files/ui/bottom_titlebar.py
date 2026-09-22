@@ -2,7 +2,7 @@ import logging
 from typing import Callable, Optional
 
 from PyQt6.QtCore import QSize, Qt
-from PyQt6.QtGui import QColor, QIcon, QMouseEvent, QMovie, QPainter, QPixmap
+from PyQt6.QtGui import QColor, QFont, QIcon, QMouseEvent, QMovie, QPainter, QPixmap
 from PyQt6.QtSvg import QSvgRenderer
 from PyQt6.QtWidgets import (
     QFrame,
@@ -13,6 +13,7 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
+from ui.theme import display_font, rgba, tokens
 from utils.helpers import get_base_path
 from utils.settings import get_settings
 from utils.version import app_version
@@ -39,7 +40,7 @@ class ClickableLabel(QLabel):
     ):
         super().__init__(text, parent)
         self.callback = callback
-        self.setStyleSheet("cursor: pointer;")
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
 
     def mousePressEvent(self, event: QMouseEvent) -> None:
         if self.callback:
@@ -54,7 +55,8 @@ class BottomTitleBar(QFrame):
         super().__init__(parent)
         self.parent_window = parent
         self.drag_pos = None
-        self.setFixedHeight(32)
+        self.setObjectName("bottomTitleBar")
+        self.setFixedHeight(40)
         self.no_previous_state = True
 
         self.navi_label: Optional[QLabel] = None
@@ -77,13 +79,17 @@ class BottomTitleBar(QFrame):
     def _setup_ui(self) -> None:
         """Setup the layout and widgets."""
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(5, 0, 5, 0)
-        layout.setSpacing(5)
+        layout.setContentsMargins(14, 0, 12, 0)
+        layout.setSpacing(8)
 
         left_widget = self._create_left_section()
         right_widget = self._create_right_section()
 
         self.title_label = QLabel("ACCELA")
+        self.title_label.setObjectName("titleLabel")
+        title_font = display_font(16, bold=True)
+        title_font.setLetterSpacing(QFont.SpacingType.AbsoluteSpacing, 1)
+        self.title_label.setFont(title_font)
         self.title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.title_label.setSizePolicy(
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred
@@ -98,6 +104,7 @@ class BottomTitleBar(QFrame):
         widget = QWidget()
         layout = QHBoxLayout(widget)
         layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(8)
 
         self._setup_navi_animation(layout)
 
@@ -106,7 +113,7 @@ class BottomTitleBar(QFrame):
             self.parent_window,
             getattr(self.parent_window, "open_credits_dialog", None),
         )
-        version_label.setStyleSheet("color: #888888;")
+        version_label.setObjectName("versionLabel")
         version_label.setToolTip("View credits")
         layout.addWidget(version_label, alignment=Qt.AlignmentFlag.AlignLeft)
 
@@ -140,11 +147,11 @@ class BottomTitleBar(QFrame):
         layout.addWidget(self.navi_label, alignment=Qt.AlignmentFlag.AlignLeft)
 
     def _create_right_section(self) -> QWidget:
-        """Create the right section containing buttons."""
+        """Create the right section: status dot, nav pill and window controls."""
         widget = QWidget()
         layout = QHBoxLayout(widget)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(2)
+        layout.setSpacing(6)
         layout.addStretch()
 
         parent = self.parent_window
@@ -155,20 +162,27 @@ class BottomTitleBar(QFrame):
         )
         layout.addWidget(self.status_button)
 
+        nav_pill = QFrame()
+        nav_pill.setObjectName("navPill")
+        nav_layout = QHBoxLayout(nav_pill)
+        nav_layout.setContentsMargins(4, 2, 4, 2)
+        nav_layout.setSpacing(2)
+
         self.search_button = self._create_svg_button(
             SEARCH_SVG, getattr(parent, "open_fetch_dialog", None), "Download Game"
         )
-        layout.addWidget(self.search_button)
+        nav_layout.addWidget(self.search_button)
 
         self.game_library_button = self._create_svg_button(
             BOOK_SVG, getattr(parent, "open_game_library", None), "Game Library"
         )
-        layout.addWidget(self.game_library_button)
+        nav_layout.addWidget(self.game_library_button)
 
         self.settings_button = self._create_svg_button(
             GEAR_SVG, getattr(parent, "open_settings", None), "Settings"
         )
-        layout.addWidget(self.settings_button)
+        nav_layout.addWidget(self.settings_button)
+        layout.addWidget(nav_pill)
 
         self.minimize_button = self._create_svg_button(
             MINIMIZE, self._minimize_window, "Minimize"
@@ -190,27 +204,32 @@ class BottomTitleBar(QFrame):
         return widget
 
     def _apply_style(self) -> None:
-        """Apply style settings from the parent window."""
-        settings = get_settings()
-        bg_color = settings.value("background_color", "#F5F2EB")
-        accent_color = settings.value("accent_color", "#8E3B56")
-
+        """Transparent bar over the window gradient, with a soft divider."""
+        t = tokens()
+        top_or_bottom = (
+            "bottom" if getattr(self.parent_window, "titlebar_position", "bottom") == "top" else "top"
+        )
         self.setStyleSheet(
             f"""
-            QFrame {{
-                background-color: {bg_color};
+            QFrame#bottomTitleBar {{
+                background: transparent;
+                border-{top_or_bottom}: 1px solid {rgba(t.accent, 0.12)};
             }}
-            QToolTip {{
-                color: {accent_color};
-                background-color: {bg_color};
-                border: 1px solid {accent_color};
-                padding: 2px;
+            QFrame#navPill {{
+                background-color: {rgba(t.surface, 0.8)};
+                border: 1px solid {t.border.name()};
+                border-radius: 15px;
+            }}
+            QLabel#titleLabel {{
+                color: {t.accent.name()};
+            }}
+            QLabel#versionLabel {{
+                color: {t.text_muted.name()};
+                font-size: 8pt;
+                font-weight: 600;
             }}
         """
         )
-
-        if self.title_label:
-            self.title_label.setStyleSheet(f"color: {accent_color}; font-size: 14pt;")
 
     def update_style(self) -> None:
         """Update the style when colors change."""
@@ -220,24 +239,19 @@ class BottomTitleBar(QFrame):
 
     def _update_button_styles(self) -> None:
         """Update all button styles with custom border and background."""
-        settings = get_settings()
-        bg_color = QColor(settings.value("background_color", "#000000"))
-
-        bg_hover = bg_color
-        hover_lightness = 150
-        if bg_color == QColor("#000000"):
-            bg_hover = QColor("#282828")
-            hover_lightness = 120
-
+        t = tokens()
         button_style = f"""
             QPushButton {{
-                background-color: {bg_color.name()};
+                background-color: transparent;
                 border: none;
-                border-radius: 3px;
-                padding: 1px;
+                border-radius: 13px;
+                padding: 0px;
             }}
             QPushButton:hover {{
-                background-color: {bg_hover.lighter(hover_lightness).name()};
+                background-color: {rgba(t.accent, 0.12)};
+            }}
+            QPushButton:pressed {{
+                background-color: {rgba(t.accent, 0.22)};
             }}
         """
 
@@ -279,19 +293,18 @@ class BottomTitleBar(QFrame):
     def _update_colored_circle_button(button: QPushButton, color: str) -> None:
         """Update a colored circle button's color."""
         try:
+            ring = QColor(color)
+            ring.setAlpha(70)
+            ring_css = f"rgba({ring.red()}, {ring.green()}, {ring.blue()}, {ring.alphaF():.2f})"
             stylesheet = f"""
             QPushButton {{
-                border-radius: 10px;
+                border-radius: 8px;
                 background-color: {color};
-                border: none;
+                border: 3px solid {ring_css};
+                padding: 0px;
             }}
             QPushButton:hover {{
-                border: 2px solid {color};
-                background-color: {color};
-                opacity: 0.8;
-            }}
-            QPushButton:pressed {{
-                opacity: 0.6;
+                border: 2px solid {ring_css};
             }}
             """
             button.setStyleSheet(stylesheet)
@@ -347,7 +360,7 @@ class BottomTitleBar(QFrame):
             pixmap = self._build_svg_pixmap(svg_data, accent_color)
             button.setIcon(QIcon(pixmap))
             button.setIconSize(pixmap.size())
-            button.setFixedSize(20, 20)
+            button.setFixedSize(26, 26)
 
             if on_click:
                 button.clicked.connect(on_click)
@@ -368,7 +381,7 @@ class BottomTitleBar(QFrame):
     ) -> QPushButton:
         """Create a simple colored circle button."""
         button = QPushButton()
-        button.setFixedSize(20, 20)
+        button.setFixedSize(16, 16)
 
         if tooltip_text:
             button.setToolTip(tooltip_text)

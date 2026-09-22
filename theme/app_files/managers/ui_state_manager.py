@@ -209,21 +209,19 @@ class UIStateManager:
             default_gif_path = sonic_gif
             sonic_main_applied = True
 
-        if hasattr(self.main_movie, "main_movie"):
-            if self.main_movie:
-                self.main_movie.stop()
-
-        self.main_movie = QMovie(str(default_gif_path))
-        self.main_movie.start()
-        self.main_window.drop_zone_gif.setMovie(self.main_movie)
-        self.current_movie = self.main_movie
+        # Stop the previous movies so they don't keep decoding in the background
+        for movie in (self.main_movie, self.download_movie):
+            if movie:
+                movie.stop()
+        self._set_dreaming(False)
 
         if main_gif_path.exists() and not sonic_main_applied:
-            self.main_movie.stop()
-            self.main_movie = QMovie(str(main_gif_path))
-            self.main_window.drop_zone_gif.setMovie(self.main_movie)
-            self.main_movie.start()
-            self.current_movie = self.main_movie
+            default_gif_path = main_gif_path
+
+        self.main_movie = QMovie(str(default_gif_path))
+        self.main_window.drop_zone_gif.setMovie(self.main_movie)
+        self.main_movie.start()
+        self.current_movie = self.main_movie
 
         if (
             self.main_window.task_manager.current_job
@@ -353,18 +351,14 @@ class UIStateManager:
 
     def _apply_background_color(self):
         """Apply background color to main content"""
-        main_frame = self.main_window.central_widget.findChild(QFrame)
-        if main_frame:
-            main_frame.setStyleSheet(
-                f"background-color: {self.main_window.background_color};"
-            )
+        # The global theme paints the window gradient; a solid color here
+        # would cover it, so only the drop card needs refreshing.
+        if hasattr(self.main_window, "_update_drop_card_style"):
+            self.main_window._update_drop_card_style()
 
     def _apply_accent_color(self):
         """Apply accent color to UI elements"""
         accent_style = f"color: {self.main_window.accent_color};"
-
-        # Drop text label
-        self.main_window.drop_text_label.setStyleSheet(accent_style)
 
         # Queue label
         if hasattr(self, "queue_widget") and self.queue_widget:
@@ -397,19 +391,33 @@ class UIStateManager:
                     "Queue idle. Ready for next job."
                 )
 
+    def _set_dreaming(self, dreaming):
+        """Toggle the dream stage's download sparkles (plain QLabel fallback)."""
+        stage = getattr(self.main_window, "drop_zone_gif", None)
+        if stage is not None and hasattr(stage, "set_dreaming"):
+            stage.set_dreaming(dreaming)
+
     def _show_main_gif(self):
         """Show the main GIF animation"""
+        self._set_dreaming(False)
         if (
             self.current_movie != self.main_movie
             and self.main_movie
             and self.main_movie.isValid()
         ):
+            if self.current_movie:
+                self.current_movie.stop()
             self.main_window.drop_zone_gif.setMovie(self.main_movie)
             self.main_movie.start()
             self.current_movie = self.main_movie
 
     def show_main_gif(self):
         self._show_main_gif()
+
+    @staticmethod
+    def _yume_download_gifs():
+        yumi_dir = get_base_path() / "gifs" / "yumi"
+        return sorted(str(p) for p in yumi_dir.glob("*.gif")) if yumi_dir.is_dir() else []
 
     def switch_to_download_gif(self):
         """Switch to a random download GIF"""
@@ -438,6 +446,9 @@ class UIStateManager:
                 available_gifs = sorted(sonic_downloads)
             else:
                 available_gifs = []
+        elif not self.disable_default_gifs and self._yume_download_gifs():
+            # Theme default: Yume Nikki dancers on the dream stage
+            available_gifs = self._yume_download_gifs()
         elif self.disable_default_gifs:
             # Use only custom GIFs
             custom_gifs = sorted(
@@ -471,6 +482,7 @@ class UIStateManager:
         self.download_movie = QMovie(self.random_gif_path)
 
         if self.download_movie.isValid():
+            self._set_dreaming(ui_mode != "sonic")
             self.current_movie = self.download_movie
             self.main_window.drop_zone_gif.setMovie(self.current_movie)
             self.current_movie.start()
