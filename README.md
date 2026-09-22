@@ -1,41 +1,77 @@
-# accela-easy-install
+# USOLINUX
 
-Full installation, custom aesthetic theme, integrated music player, and automated SLSsteam setup for ACCELA on Linux.
+Gerenciador de jogos para Linux baseado no [ACCELA](https://portal3d.github.io/accela-dist-archive/guide.html), com instalação em um comando, SLSsteam configurado automaticamente, tema dreamy Y2K e music player integrado.
 
 <div align="center">
 
-![Preview](assets/screenshot.png)
-
-![Theme Animation](theme/gifs/custom/main.gif)
+![USOLINUX](assets/screenshot.png)
 
 </div>
 
-## Overview
+## O que o instalador faz
 
-This repository provides an automated installation script and custom theme for ACCELA (Serial Experiments Lain themed game client) on Linux.
+Um único comando deixa tudo pronto:
 
-It handles SLSsteam installation and configuration (`PlayNotOwnedGames: yes`), applies a dreamy Y2K theme, disables the 50Hz electrical hum, sets up Hyprland floating window rules, and embeds an aesthetic music player with dancing pixel art.
+1. Instala as dependências do sistema e o ACCELA base (scripts do [enter-the-wired](https://github.com/ciscosweater/enter-the-wired)).
+2. Baixa a versão mais recente do [SLSsteam](https://github.com/AceSLS/SLSsteam), instala e ativa `PlayNotOwnedGames` e `API` no `~/.config/SLSsteam/config.yaml`, para os jogos aparecerem e abrirem pela Steam.
+3. Aplica o tema USOLINUX, o music player e as músicas, e instala o `cava` (visualizador).
+4. Configura a janela flutuante no Hyprland, o atalho no menu de aplicativos e o comando `usolinux` no terminal.
 
-### Theme
+Funciona em Arch/CachyOS, Debian/Ubuntu, Fedora, openSUSE e Void.
 
-- Soft pastel gradients, rounded cards and pill buttons across the main window and every dialog, all derived from the accent and background colors you pick in Settings → Style.
-- Nunito for text and Silkscreen for pixel titles (both bundled, SIL Open Font License).
-- While a game downloads, a Yume Nikki dancer appears over a glowing stage with twinkling sparkles.
-- Floating music player card with a real-time CAVA visualizer.
+## Tutorial
 
-Re-running `install.sh` or `apply-theme.sh` keeps your settings; theme colors are only set on the first apply.
+### 1. Instalar
 
-## Installation
-
-Run the one-line installer:
+Com a Steam instalada, rode no terminal:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/gabesvr/accela-easy-install/main/install.sh | bash
 ```
 
-The script detects your Linux package manager (Arch/CachyOS, Debian/Ubuntu, Fedora, OpenSUSE, Void), installs dependencies, downloads ACCELA, configures SLSsteam, and applies the theme and shortcuts.
+O script pede a sua senha (`sudo`) para instalar pacotes. No final aparece **USOLINUX INSTALADO COM SUCESSO**.
 
-If you already have ACCELA installed and just want the theme:
+### 2. Reiniciar a Steam
+
+Feche a Steam por completo e abra de novo, para ela carregar o SLSsteam.
+
+### 3. Abrir o USOLINUX
+
+- Pelo menu de aplicativos: **USOLINUX**
+- Ou pelo terminal: `usolinux`
+
+### 4. Configurar a chave da API (para buscar jogos)
+
+1. Entre com o Discord em [hubcapmanifest.com](https://hubcapmanifest.com/).
+2. Pegue sua chave em [hubcapmanifest.com/api-keys/user](https://hubcapmanifest.com/api-keys/user).
+3. No USOLINUX, clique na engrenagem → **Integrations**.
+4. Cole a chave em **Hubcap API Key** e clique em **OK**.
+
+### 5. Baixar um jogo
+
+- **Pela busca:** clique na lupa, pesquise o jogo e escolha o que baixar.
+- **Por arquivo:** arraste um `.zip` de manifest para a janela. Não precisa de chave.
+
+Durante o download aparece a animação com a dançarina de Yume Nikki e a barra de progresso. Quando terminar, reinicie a Steam: o jogo aparece na biblioteca pronto para jogar.
+
+### 6. Biblioteca
+
+O ícone de livro mostra os jogos instalados, o tamanho de cada um e se há atualização.
+
+## Tema
+
+- Gradientes pastel, cards arredondados e botões em pílula na janela principal e em todos os diálogos.
+- As cores vêm da cor de destaque e da cor de fundo escolhidas em **Configurações → Style**: mude as duas e o app inteiro acompanha.
+- Fontes Nunito (texto) e Silkscreen (títulos pixel), incluídas no tema (SIL Open Font License).
+- Music player flutuante com visualizador CAVA em tempo real e mascote de Yume Nikki (clique nele para trocar a dança).
+
+## Músicas
+
+Coloque arquivos `.mp3`, `.flac`, `.ogg`, `.wav` ou `.m4a` em `~/.local/share/ACCELA/music/` ou `~/Music/ACCELA/`. O player toca todos em sequência.
+
+## Já tem o ACCELA instalado?
+
+Aplique só o tema:
 
 ```bash
 git clone https://github.com/gabesvr/accela-easy-install.git
@@ -43,24 +79,21 @@ cd accela-easy-install
 ./apply-theme.sh
 ```
 
-## Setup
+Rodar o `install.sh` ou o `apply-theme.sh` de novo atualiza o tema e mantém as suas configurações. As cores do tema só são impostas na primeira vez.
 
-To search and download games directly through the interface:
+## Problemas comuns
 
-1. Log in with Discord at [hubcapmanifest.com](https://hubcapmanifest.com/).
-2. Get your key at [hubcapmanifest.com/api-keys/user](https://hubcapmanifest.com/api-keys/user).
-3. In ACCELA, open Settings (gear icon) -> Integrations.
-4. Paste your Morrenus API Key and save.
+- **O jogo não aparece na Steam:** reinicie a Steam por completo e confira se `~/.config/SLSsteam/config.yaml` tem `PlayNotOwnedGames: yes`.
+- **O visualizador do player fica vazio:** instale o `cava` pelo gerenciador de pacotes da sua distro.
+- **Nenhuma música toca:** confira se há arquivos de áudio em `~/.local/share/ACCELA/music/`.
 
-You can also drag and drop `.zip` manifest files directly into the window without an API key.
+## Desenvolvimento
 
-## Custom Music
+`./dev-sync.sh --run` copia o código de `theme/app_files` para a instalação local e abre o app, sem mexer na configuração.
 
-Drop your `.mp3` files into `~/.local/share/ACCELA/music/`. The player will automatically detect and play them.
+## Créditos
 
-## Credits
-
-- [CiscoSweater (ciskao)](https://github.com/ciscosweater) - [enter-the-wired](https://github.com/ciscosweater/enter-the-wired) installer and Linux packaging.
-- [AceSLS](https://github.com/AceSLS/SLSsteam) - SLSsteam.
-- Tachibana Labs / Morrenus - Original ACCELA client.
-- gabesvr - Theme design, music player integration, and automated installer.
+- Tachibana Labs / Morrenus: ACCELA original.
+- [CiscoSweater (ciskao)](https://github.com/ciscosweater): [enter-the-wired](https://github.com/ciscosweater/enter-the-wired), instalador e empacotamento para Linux.
+- [AceSLS](https://github.com/AceSLS/SLSsteam): SLSsteam.
+- gabesvr: USOLINUX, tema, music player e instalador automático.

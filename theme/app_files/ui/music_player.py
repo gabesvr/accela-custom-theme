@@ -398,7 +398,7 @@ class MusicPlayerWidget(QWidget):
 
     def _setup_ui(self) -> None:
         """Setup frameless, clean, organized player layout."""
-        self.setFixedHeight(122)
+        self.setFixedHeight(136)
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
 
         # Floating translucent card with a soft accent shadow

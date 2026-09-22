@@ -85,7 +85,7 @@ class BottomTitleBar(QFrame):
         left_widget = self._create_left_section()
         right_widget = self._create_right_section()
 
-        self.title_label = QLabel("ACCELA")
+        self.title_label = QLabel("USOLINUX")
         self.title_label.setObjectName("titleLabel")
         title_font = display_font(16, bold=True)
         title_font.setLetterSpacing(QFont.SpacingType.AbsoluteSpacing, 1)

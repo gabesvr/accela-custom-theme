@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # ==============================================================================
-# ACCELA - Custom Theme & Aesthetic Music Player Installer
+# USOLINUX - Instalador (ACCELA + SLSsteam + tema dreamy + music player)
 # Customizado por: Gabriel Vieira (gabesvr)
 # 
 # CRÉDITOS ESPECIAIS:
@@ -36,12 +36,12 @@ REPO_URL="https://github.com/gabesvr/accela-easy-install"
 
 echo -e "${MAGENTA}${BOLD}"
 cat << 'EOF'
-     _    ____ ____ _____ _        _    
-    / \  / ___/ ___| ____| |      / \   
-   / _ \| |  | |   |  _| | |     / _ \  
-  / ___ \ |__| |___| |___| |___ / ___ \ 
- /_/   \_\____\____|_____|_____/_/   \_\
-   [ THEME & AESTHETIC MUSIC PLAYER ]
+  _   _ ____   ___  _     ___ _   _ _   ___  __
+ | | | / ___| / _ \| |   |_ _| \ | | | | \ \/ /
+ | | | \___ \| | | | |    | ||  \| | | | |\  /
+ | |_| |___) | |_| | |___ | || |\  | |_| |/  \
+  \___/|____/ \___/|_____|___|_| \_|\___//_/\_\
+      [ baseado no ACCELA • tema by gabesvr ]
 EOF
 echo -e "${NC}"
 echo -e "${CYAN}================================================================${NC}"
@@ -118,12 +118,12 @@ bash "$SCRIPT_DIR/apply-theme.sh"
 
 echo ""
 echo -e "${CYAN}================================================================${NC}"
-echo -e "${GREEN}${BOLD}✨ INSTALAÇÃO DO ACCELA COM TEMA CONCLUÍDA COM SUCESSO! ✨${NC}"
+echo -e "${GREEN}${BOLD}✨ USOLINUX INSTALADO COM SUCESSO! ✨${NC}"
 echo -e "${CYAN}================================================================${NC}"
 echo ""
 echo -e "🎮 ${BOLD}Como iniciar:${NC}"
-echo -e "  • Menu de aplicativos: ${BOLD}ACCELA${NC}"
-echo -e "  • Pelo terminal: ${BOLD}accela${NC}"
+echo -e "  • Menu de aplicativos: ${BOLD}USOLINUX${NC}"
+echo -e "  • Pelo terminal: ${BOLD}usolinux${NC}"
 echo ""
 echo -e "🎵 ${BOLD}Recursos do Tema Customizado:${NC}"
 echo -e "  • 100% Flutuante e centralizado por padrão"

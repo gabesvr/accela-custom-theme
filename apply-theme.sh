@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # ==============================================================================
-# Aplica o tema customizado do gabesvr em um ACCELA já instalado.
+# USOLINUX: aplica o tema customizado do gabesvr em um ACCELA já instalado.
 # Também é chamado pelo install.sh depois de instalar o ACCELA e o SLSsteam.
 # Pode ser executado quantas vezes quiser: as configurações do usuário são mantidas.
 # ==============================================================================
@@ -27,7 +27,7 @@ CONF_FILE="$CONF_DIR/ACCELA.conf"
 warn() { echo -e "${YELLOW}[AVISO]${NC} $1"; }
 
 echo -e "${CYAN}====================================================${NC}"
-echo -e "${GREEN}Aplicador de Tema ACCELA (Customizado por gabesvr)${NC}"
+echo -e "${GREEN}USOLINUX - Aplicador de Tema (baseado no ACCELA)${NC}"
 echo -e "${CYAN}====================================================${NC}"
 
 if [ ! -d "$INSTALL_DIR" ]; then
@@ -168,7 +168,22 @@ fi
 # ------------------------------------------------------------------------------
 # Hyprland: janela flutuante e centralizada
 # ------------------------------------------------------------------------------
+# A janela mantém a class "ACCELA" (a config do app depende dela); o título é USOLINUX
 if [ -f "$HOME/.config/hypr/hyprland.lua" ]; then
+    if ! grep -q "usolinux-float" "$HOME/.config/hypr/hyprland.lua"; then
+        echo "Adicionando regra flutuante do USOLINUX no hyprland.lua..."
+        cat >> "$HOME/.config/hypr/hyprland.lua" << 'EOF'
+
+-- USOLINUX: sempre flutuante e centralizado
+hl.window_rule({
+    name   = "usolinux-float",
+    match  = { title = "^(USOLINUX)$" },
+    float  = true,
+    center = true,
+    size   = "820 540",
+})
+EOF
+    fi
     if ! grep -q "accela-float" "$HOME/.config/hypr/hyprland.lua"; then
         echo "Adicionando regra flutuante no hyprland.lua..."
         cat >> "$HOME/.config/hypr/hyprland.lua" << 'EOF'
@@ -191,6 +206,16 @@ hl.window_rule({
 EOF
     fi
 elif [ -f "$HOME/.config/hypr/hyprland.conf" ]; then
+    if ! grep -q "title:^(USOLINUX)" "$HOME/.config/hypr/hyprland.conf"; then
+        echo "Adicionando regra flutuante do USOLINUX no hyprland.conf..."
+        cat >> "$HOME/.config/hypr/hyprland.conf" << 'EOF'
+
+# USOLINUX: sempre flutuante e centralizado
+windowrulev2 = float, title:^(USOLINUX)$
+windowrulev2 = center, title:^(USOLINUX)$
+windowrulev2 = size 820 540, title:^(USOLINUX)$
+EOF
+    fi
     if ! grep -q "class:^(ACCELA" "$HOME/.config/hypr/hyprland.conf"; then
         echo "Adicionando regra flutuante no hyprland.conf..."
         cat >> "$HOME/.config/hypr/hyprland.conf" << 'EOF'
@@ -217,8 +242,9 @@ chmod +x "$INSTALL_DIR/ACCELA.AppImage"
 mkdir -p "$HOME/.local/share/applications"
 cat > "$HOME/.local/share/applications/ACCELA.desktop" << EOF
 [Desktop Entry]
-Name=ACCELA
-Comment=Gerenciador de jogos estilizado (Tema Customizado por gabesvr)
+Name=USOLINUX
+GenericName=Game Manager
+Comment=Gerenciador de jogos baseado no ACCELA (tema por gabesvr)
 Exec=$HOME/.local/share/ACCELA/ACCELA.AppImage %u
 Icon=$HOME/.local/share/ACCELA/squashfs-root/accela.png
 Terminal=false
@@ -236,10 +262,12 @@ if [ -f "$INSTALL_DIR/squashfs-root/accela.png" ]; then
 fi
 
 mkdir -p "$HOME/.local/bin"
-cat > "$HOME/.local/bin/accela" << 'EOF'
+for cmd in usolinux accela; do
+    cat > "$HOME/.local/bin/$cmd" << 'EOF'
 #!/usr/bin/env bash
 exec "$HOME/.local/share/ACCELA/ACCELA.AppImage" "$@"
 EOF
-chmod +x "$HOME/.local/bin/accela"
+    chmod +x "$HOME/.local/bin/$cmd"
+done
 
-echo -e "${GREEN}✓ Tema aplicado com sucesso no ACCELA!${NC}"
+echo -e "${GREEN}✓ USOLINUX aplicado com sucesso!${NC}"

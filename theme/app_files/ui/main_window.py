@@ -172,7 +172,7 @@ class MainWindow(QMainWindow):
 
     def _setup_window_properties(self) -> None:
         """Configure basic window properties."""
-        self.setWindowTitle("ACCELA")
+        self.setWindowTitle("USOLINUX")
         self.setWindowFlags(Qt.WindowType.Dialog | Qt.WindowType.FramelessWindowHint)
         self.setGeometry(100, 100, 820, 540)
 
